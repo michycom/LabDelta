@@ -1,0 +1,5 @@
+import { Panel } from "./Panel";
+
+export function SourcePreview() {
+  return <Panel number={5} title="Original laboratory report view" className="source-preview"><div className="document-toolbar">Laboratory_report_2025-05-12.pdf <span>1 / 3 − 100% ＋ ⋮</span></div><div className="document"><aside><div className="page active">1</div><div className="page">2</div><div className="page">3</div></aside><article><h3>Labor Dr. Meier</h3><small>Medical care center</small><p><strong>Patient:</strong> Müller, Anna · <strong>Date:</strong> 12.05.2025<br /><strong>ID:</strong> P-10023</p><h4>Laboratory values</h4><table><tbody><tr><td>Ferritin</td><td>65</td><td>µg/l</td><td>30–300</td></tr><tr><td>CRP</td><td>4.6</td><td>mg/l</td><td>&lt; 5.0</td></tr><tr><td>Vitamin B12</td><td>215</td><td>pg/ml</td><td>200–950</td></tr><tr><td>TSH</td><td>1.2</td><td>mU/l</td><td>0.4–4.0</td></tr><tr><td>Leukocytes</td><td>3.2</td><td>K/µl</td><td>4.0–10.0</td></tr><tr><td>ALT (GPT)</td><td>38</td><td>U/l</td><td>&lt; 40</td></tr></tbody></table></article></div></Panel>;
+}
