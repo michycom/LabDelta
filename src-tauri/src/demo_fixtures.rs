@@ -142,23 +142,6 @@ pub(crate) fn approved_fixtures() -> Result<ApprovedFixtureSet, FixtureError> {
     validate_fixture_set(MANIFEST_JSON, EMBEDDED_SOURCES)
 }
 
-pub(crate) fn validate_embedded_fixtures() -> Result<(), FixtureError> {
-    let approved = approved_fixtures()?;
-    if approved.manifest_sha256.len() != 64
-        || approved.manifest.fixtures.len() != approved.fixtures.len()
-        || approved.fixtures.iter().any(|fixture| {
-            fixture.content.is_empty()
-                || fixture.entry.fixture_id != fixture.fixture.fixture_id
-                || fixture.entry.fixture_version != fixture.fixture.fixture_version
-        })
-    {
-        return Err(FixtureError::InvalidManifest(
-            "validated fixture bundle is internally inconsistent".to_owned(),
-        ));
-    }
-    Ok(())
-}
-
 pub(crate) fn sha256_hex(content: &[u8]) -> String {
     let digest = Sha256::digest(content);
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
@@ -305,6 +288,7 @@ fn validate_fixture(entry: &ManifestFixture, fixture: &DemoFixture) -> Result<()
     }
 
     let mut report_keys = HashSet::new();
+    let mut previous_specimen_collected_at: Option<&str> = None;
     for report in &fixture.reports {
         if !report_keys.insert(report.source_key.as_str())
             || report.laboratory_name.trim().is_empty()
@@ -319,6 +303,14 @@ fn validate_fixture(entry: &ManifestFixture, fixture: &DemoFixture) -> Result<()
                 "report keys and required fields must be complete and unique",
             ));
         }
+        if previous_specimen_collected_at
+            .is_some_and(|previous| report.specimen_collected_at.as_str() <= previous)
+        {
+            return Err(invalid(
+                "reports must be strictly ordered by specimen collection timestamp",
+            ));
+        }
+        previous_specimen_collected_at = Some(report.specimen_collected_at.as_str());
 
         let mut value_keys = HashSet::new();
         for value in &report.values {

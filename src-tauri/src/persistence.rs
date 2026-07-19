@@ -19,7 +19,7 @@ impl PatientRepository {
     }
 
     #[cfg(test)]
-    fn in_memory() -> Result<Self, PatientError> {
+    pub(crate) fn in_memory() -> Result<Self, PatientError> {
         let connection = Connection::open_in_memory().map_err(persistence_error)?;
         Self::from_connection(connection)
     }
@@ -139,8 +139,12 @@ impl PatientRepository {
     }
 
     #[cfg(test)]
-    fn connection(&self) -> &Connection {
+    pub(crate) fn connection(&self) -> &Connection {
         &self.connection
+    }
+
+    pub(crate) fn connection_mut(&mut self) -> &mut Connection {
+        &mut self.connection
     }
 
     #[cfg(test)]
@@ -186,9 +190,12 @@ mod tests {
     use crate::domain::{PatientError, PatientInput};
     use crate::migrations::LATEST_SCHEMA_VERSION;
 
-    const PERSISTENCE_TABLES: [&str; 10] = [
+    const PERSISTENCE_TABLES: [&str; 13] = [
         "confirmed_working_values",
         "correction_history",
+        "demo_seed_documents",
+        "demo_seed_fixtures",
+        "demo_seed_runs",
         "extracted_values",
         "extraction_versions",
         "laboratory_reports",
