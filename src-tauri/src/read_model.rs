@@ -554,6 +554,14 @@ mod tests {
             values[0].original.document.original_file_name,
             "nova-linden.json"
         );
+        let command_payload = serde_json::to_value(&values[0]).expect("command JSON payload");
+        assert_eq!(command_payload["confirmationStatus"], "explicit");
+        assert_eq!(command_payload["confirmedValue"]["kind"], "numericText");
+        assert_eq!(command_payload["provenance"]["locator"]["kind"], "jsonPath");
+        assert_eq!(
+            command_payload["provenance"]["locator"]["path"],
+            "$.reports[0].values[0]"
+        );
     }
 
     #[test]

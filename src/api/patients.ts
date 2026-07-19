@@ -1,18 +1,18 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Patient, PatientInput } from "../types";
+import type { ConfirmedReportValue, LaboratoryReport, PatientDetails, PatientListItem } from "../types";
 
-export function listPatients(): Promise<Patient[]> {
-  return invoke<Patient[]>("list_patients");
+export function listPatients(): Promise<PatientListItem[]> {
+  return invoke<PatientListItem[]>("list_patients");
 }
 
-export function createPatient(input: PatientInput): Promise<Patient> {
-  return invoke<Patient>("create_patient", { input });
+export function getPatientDetails(patientId: string): Promise<PatientDetails> {
+  return invoke<PatientDetails>("get_patient_details", { patientId });
 }
 
-export function updatePatient(id: string, input: PatientInput): Promise<Patient> {
-  return invoke<Patient>("update_patient", { id, input });
+export function listLaboratoryReports(patientId: string): Promise<LaboratoryReport[]> {
+  return invoke<LaboratoryReport[]>("list_laboratory_reports", { patientId });
 }
 
-export function deletePatient(id: string): Promise<void> {
-  return invoke<void>("delete_patient", { id });
+export function listConfirmedReportValues(reportId: string): Promise<ConfirmedReportValue[]> {
+  return invoke<ConfirmedReportValue[]>("list_confirmed_report_values", { reportId });
 }

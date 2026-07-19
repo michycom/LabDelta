@@ -1,15 +1,10 @@
 import { useState } from "react";
-import { Dashboard } from "./components/Dashboard";
+import { DemoDataWorkspace } from "./components/DemoDataWorkspace";
 import { DemoDisclaimer } from "./components/DemoDisclaimer";
 import { Header } from "./components/Header";
-import { ImportPanel } from "./components/ImportPanel";
-import { PatientWorkspace } from "./components/PatientWorkspace";
-import { ProfileOverview } from "./components/ProfileOverview";
-import { Shell } from "./components/Shell";
-import { SourcePreview } from "./components/SourcePreview";
-import { TrendPanel } from "./components/TrendPanel";
 import { PatientManagement } from "./components/PatientManagement";
-import { usePatients } from "./hooks/usePatients";
+import { Shell } from "./components/Shell";
+import { useDemoData } from "./hooks/useDemoData";
 import { hasAcknowledgedDemoDisclaimer, storeDemoDisclaimerAcknowledgement } from "./state/demoAcknowledgement";
 import type { AppSection } from "./types";
 
@@ -28,6 +23,36 @@ export default function App() {
 
 function LabDeltaApplication() {
   const [activeSection, setActiveSection] = useState<AppSection>("dashboard");
-  const patientState = usePatients();
-  return <Shell activeSection={activeSection} onNavigate={setActiveSection}><Header patient={patientState.selectedPatient} onOpenPatients={() => setActiveSection("patients")} />{activeSection === "dashboard" ? <div className="workspace-grid"><Dashboard onSelectPatient={() => setActiveSection("patients")} /><PatientWorkspace /><ProfileOverview /><TrendPanel /><SourcePreview /><ImportPanel /></div> : <PatientManagement patients={patientState.patients} selectedPatientId={patientState.selectedPatientId} isLoading={patientState.isLoading} error={patientState.error} onRefresh={patientState.refresh} onSelect={patientState.selectPatient} onCreate={patientState.createPatient} onUpdate={patientState.updatePatient} onDelete={patientState.deletePatient} />}<footer><strong>Research and demonstration prototype.</strong> Not clinically validated or certified as a medical device. No diagnosis or recommendations. Patient identities are stored locally; Stage 1 laboratory displays remain static synthetic demonstration data.</footer></Shell>;
+  const demoData = useDemoData();
+  return <Shell activeSection={activeSection} onNavigate={setActiveSection}>
+    <Header patient={demoData.selectedPatient} onOpenPatients={() => setActiveSection("patients")} />
+    {activeSection === "dashboard" ? <DemoDataWorkspace
+      patients={demoData.patients}
+      selectedPatient={demoData.selectedPatient}
+      patientDetails={demoData.patientDetails}
+      reports={demoData.reports}
+      selectedReport={demoData.selectedReport}
+      values={demoData.values}
+      isLoadingPatients={demoData.isLoadingPatients}
+      isLoadingPatientData={demoData.isLoadingPatientData}
+      isLoadingValues={demoData.isLoadingValues}
+      patientsError={demoData.patientsError}
+      patientDataError={demoData.patientDataError}
+      valuesError={demoData.valuesError}
+      onRefreshPatients={demoData.refreshPatients}
+      onSelectPatient={demoData.selectPatient}
+      onSelectReport={demoData.selectReport}
+    /> : <PatientManagement
+      patients={demoData.patients}
+      selectedPatientId={demoData.selectedPatientId}
+      isLoading={demoData.isLoadingPatients}
+      error={demoData.patientsError}
+      onRefresh={demoData.refreshPatients}
+      onSelect={patientId => {
+        demoData.selectPatient(patientId);
+        setActiveSection("dashboard");
+      }}
+    />}
+    <footer><strong>Research and demonstration project.</strong> Not clinically validated and not released for medical use. No diagnosis, prognosis, treatment, test, or therapy recommendation. Synthetic source documents remain authoritative for this demonstration.</footer>
+  </Shell>;
 }
