@@ -1,11 +1,17 @@
 use std::path::Path;
 use std::time::Duration;
 
+#[cfg(test)]
 use chrono::{SecondsFormat, Utc};
-use rusqlite::{params, Connection, Row};
+use rusqlite::Connection;
+#[cfg(test)]
+use rusqlite::{params, Row};
+#[cfg(test)]
 use uuid::Uuid;
 
-use crate::domain::{Patient, PatientError, PatientInput};
+use crate::domain::PatientError;
+#[cfg(test)]
+use crate::domain::{Patient, PatientInput};
 use crate::migrations;
 
 pub struct PatientRepository {
@@ -43,6 +49,7 @@ impl PatientRepository {
         Ok(Self { connection })
     }
 
+    #[cfg(test)]
     pub fn list(&self) -> Result<Vec<Patient>, PatientError> {
         let mut statement = self
             .connection
@@ -62,6 +69,7 @@ impl PatientRepository {
         Ok(patients)
     }
 
+    #[cfg(test)]
     pub fn create(&mut self, input: PatientInput) -> Result<Patient, PatientError> {
         let input = input.validate()?;
         let id = Uuid::new_v4().to_string();
@@ -85,6 +93,7 @@ impl PatientRepository {
         self.get(&id)
     }
 
+    #[cfg(test)]
     pub fn update(&mut self, id: &str, input: PatientInput) -> Result<Patient, PatientError> {
         let input = input.validate()?;
         let updated = self
@@ -111,6 +120,7 @@ impl PatientRepository {
         self.get(id)
     }
 
+    #[cfg(test)]
     pub fn delete(&mut self, id: &str) -> Result<(), PatientError> {
         let deleted = self
             .connection
@@ -122,6 +132,7 @@ impl PatientRepository {
         Ok(())
     }
 
+    #[cfg(test)]
     fn get(&self, id: &str) -> Result<Patient, PatientError> {
         self.connection
             .query_row(
@@ -138,7 +149,6 @@ impl PatientRepository {
             })
     }
 
-    #[cfg(test)]
     pub(crate) fn connection(&self) -> &Connection {
         &self.connection
     }
@@ -157,6 +167,7 @@ impl PatientRepository {
     }
 }
 
+#[cfg(test)]
 fn patient_from_row(row: &Row<'_>) -> rusqlite::Result<Patient> {
     Ok(Patient {
         id: row.get(0)?,
@@ -171,6 +182,7 @@ fn patient_from_row(row: &Row<'_>) -> rusqlite::Result<Patient> {
     })
 }
 
+#[cfg(test)]
 fn timestamp() -> String {
     Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
 }

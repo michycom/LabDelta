@@ -4,11 +4,15 @@ mod demo_seed;
 mod domain;
 mod migrations;
 mod persistence;
+mod read_model;
 
 use std::fs;
 use std::io;
 
-use commands::{create_patient, delete_patient, list_patients, update_patient, PatientStore};
+use commands::{
+    get_patient_details, list_confirmed_report_values, list_laboratory_reports, list_patients,
+    PatientStore,
+};
 use persistence::PatientRepository;
 use tauri::Manager;
 
@@ -27,9 +31,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             list_patients,
-            create_patient,
-            update_patient,
-            delete_patient
+            get_patient_details,
+            list_laboratory_reports,
+            list_confirmed_report_values
         ])
         .run(tauri::generate_context!())
         .expect("error while running LabDelta");
