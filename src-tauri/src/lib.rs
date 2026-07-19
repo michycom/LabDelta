@@ -1,6 +1,31 @@
+mod commands;
+mod domain;
+mod persistence;
+
+use std::fs;
+use std::io;
+
+use commands::{create_patient, delete_patient, list_patients, update_patient, PatientStore};
+use persistence::PatientRepository;
+use tauri::Manager;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .setup(|app| {
+            let data_directory = app.path().app_data_dir()?;
+            fs::create_dir_all(&data_directory)?;
+            let repository = PatientRepository::open(data_directory.join("labdelta.sqlite3"))
+                .map_err(|error| io::Error::other(error.to_string()))?;
+            app.manage(PatientStore::new(repository));
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            list_patients,
+            create_patient,
+            update_patient,
+            delete_patient
+        ])
         .run(tauri::generate_context!())
         .expect("error while running LabDelta");
 }

@@ -35,3 +35,21 @@ export interface LaboratoryProfile {
   severity: Severity;
 }
 
+export interface Patient {
+  id: string;
+  displayName: string;
+  dateOfBirth: string;
+  sexReferenceContext: string | null;
+  externalIdentifier: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PatientInput {
+  displayName: string;
+  dateOfBirth: string;
+  sexReferenceContext: string | null;
+  externalIdentifier: string | null;
+}
+
+export type AppSection = "dashboard" | "patients";
