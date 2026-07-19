@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1",
+  "fixtureId": "labdelta-demo-tarin-vale",
+  "fixtureVersion": "1",
+  "demoMarker": "LABDELTA_SYNTHETIC_DEMO_V1",
+  "sourceNotice": "Fully synthetic fixture. Supplied reference text is demo source data, not a medical rule.",
+  "patient": {
+    "sourceKey": "patient-tarin-vale",
+    "displayName": "Tarin Vale",
+    "dateOfBirth": "1975-09-30",
+    "externalIdentifier": "DEMO-002"
+  },
+  "reports": [
+    {
+      "sourceKey": "tarin-report-2025-02-05",
+      "laboratoryName": "LabDelta Synthetic Laboratory West",
+      "specimenCollectedAt": "2025-02-05T07:50:00Z",
+      "laboratoryReceivedAt": "2025-02-05T08:40:00Z",
+      "reportReleasedAt": "2025-02-05T11:45:00Z",
+      "revisionNumber": "1",
+      "importedAt": "2025-02-06T10:00:00Z",
+      "values": [
+        {
+          "sourceKey": "marker-alpha",
+          "originalParameterName": "Demo-Marker Alpha",
+          "originalValue": "22",
+          "unit": "demo-unit-A",
+          "referenceRange": "10–20",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[0]",
+            "textExcerpt": "Demo-Marker Alpha: 22 demo-unit-A; supplied reference 10–20"
+          }
+        },
+        {
+          "sourceKey": "marker-beta",
+          "originalParameterName": "Demo-Marker Beta",
+          "originalValue": "6.0",
+          "unit": "demo-unit-B",
+          "referenceRange": "2–5",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[1]",
+            "textExcerpt": "Demo-Marker Beta: 6.0 demo-unit-B; supplied reference 2–5"
+          }
+        }
+      ]
+    },
+    {
+      "sourceKey": "tarin-report-2025-05-05",
+      "laboratoryName": "LabDelta Synthetic Laboratory West",
+      "specimenCollectedAt": "2025-05-05T07:55:00Z",
+      "laboratoryReceivedAt": "2025-05-05T08:45:00Z",
+      "reportReleasedAt": "2025-05-05T11:55:00Z",
+      "revisionNumber": "1",
+      "importedAt": "2025-05-06T10:00:00Z",
+      "values": [
+        {
+          "sourceKey": "marker-alpha",
+          "originalParameterName": "Demo-Marker Alpha",
+          "originalValue": "16",
+          "unit": "demo-unit-A",
+          "referenceRange": "10–20",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[0]",
+            "textExcerpt": "Demo-Marker Alpha: 16 demo-unit-A; supplied reference 10–20"
+          }
+        },
+        {
+          "sourceKey": "marker-beta",
+          "originalParameterName": "Demo-Marker Beta",
+          "originalValue": "3.5",
+          "unit": "demo-unit-B",
+          "referenceRange": "2–5",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[1]",
+            "textExcerpt": "Demo-Marker Beta: 3.5 demo-unit-B; supplied reference 2–5"
+          }
+        }
+      ]
+    }
+  ]
+}
