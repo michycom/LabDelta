@@ -1,0 +1,28 @@
+{
+  "manifestVersion": "1",
+  "seedVersion": "contest-demo-v1",
+  "demoMarker": "LABDELTA_SYNTHETIC_DEMO_V1",
+  "fixtures": [
+    {
+      "fixtureId": "labdelta-demo-elio-morgen",
+      "fixtureVersion": "1",
+      "demoMarker": "LABDELTA_SYNTHETIC_DEMO_V1",
+      "path": "elio-morgen.json",
+      "sha256": "449983a7a289a475450cb1ed7549ddbf238964b71a90e02f6a9934302774b900"
+    },
+    {
+      "fixtureId": "labdelta-demo-nova-linden",
+      "fixtureVersion": "1",
+      "demoMarker": "LABDELTA_SYNTHETIC_DEMO_V1",
+      "path": "nova-linden.json",
+      "sha256": "827cf26221c8dea6f715583df9b6c50d924a2e2da7e91dba1161d6ca29a4baf6"
+    },
+    {
+      "fixtureId": "labdelta-demo-tarin-vale",
+      "fixtureVersion": "1",
+      "demoMarker": "LABDELTA_SYNTHETIC_DEMO_V1",
+      "path": "tarin-vale.json",
+      "sha256": "59d1101f760d1b19f4b1dd2a2e0ed661e25b105106226baa1c755a62be0f5d5a"
+    }
+  ]
+}

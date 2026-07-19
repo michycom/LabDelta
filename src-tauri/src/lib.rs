@@ -1,4 +1,5 @@
 mod commands;
+mod demo_fixtures;
 mod domain;
 mod migrations;
 mod persistence;
@@ -14,6 +15,8 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
+            demo_fixtures::validate_embedded_fixtures()
+                .map_err(|error| io::Error::other(error.to_string()))?;
             let data_directory = app.path().app_data_dir()?;
             fs::create_dir_all(&data_directory)?;
             let repository = PatientRepository::open(data_directory.join("labdelta.sqlite3"))
