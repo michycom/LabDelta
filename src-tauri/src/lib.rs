@@ -1,5 +1,6 @@
 mod commands;
 mod domain;
+mod migrations;
 mod persistence;
 
 use std::fs;

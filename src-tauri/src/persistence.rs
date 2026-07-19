@@ -6,6 +6,7 @@ use rusqlite::{params, Connection, Row};
 use uuid::Uuid;
 
 use crate::domain::{Patient, PatientError, PatientInput};
+use crate::migrations;
 
 pub struct PatientRepository {
     connection: Connection,
@@ -23,30 +24,22 @@ impl PatientRepository {
         Self::from_connection(connection)
     }
 
-    fn from_connection(connection: Connection) -> Result<Self, PatientError> {
+    fn from_connection(mut connection: Connection) -> Result<Self, PatientError> {
         connection
             .busy_timeout(Duration::from_secs(5))
             .map_err(persistence_error)?;
         connection
-            .execute_batch(
-                "PRAGMA foreign_keys = ON;
-                 CREATE TABLE IF NOT EXISTS schema_migrations (
-                    version INTEGER PRIMARY KEY,
-                    applied_at TEXT NOT NULL
-                 );
-                 CREATE TABLE IF NOT EXISTS patients (
-                    id TEXT PRIMARY KEY NOT NULL,
-                    display_name TEXT NOT NULL CHECK(length(trim(display_name)) > 0),
-                    date_of_birth TEXT NOT NULL,
-                    sex_reference_context TEXT,
-                    external_identifier TEXT,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
-                 );
-                 INSERT OR IGNORE INTO schema_migrations(version, applied_at)
-                 VALUES (1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));",
-            )
+            .execute_batch("PRAGMA foreign_keys = ON;")
             .map_err(persistence_error)?;
+        let foreign_keys_enabled = connection
+            .query_row("PRAGMA foreign_keys", [], |row| row.get::<_, bool>(0))
+            .map_err(persistence_error)?;
+        if !foreign_keys_enabled {
+            return Err(PatientError::Persistence(
+                "SQLite foreign-key enforcement could not be enabled".to_owned(),
+            ));
+        }
+        migrations::apply(&mut connection)?;
         Ok(Self { connection })
     }
 
@@ -55,7 +48,8 @@ impl PatientRepository {
             .connection
             .prepare(
                 "SELECT id, display_name, date_of_birth, sex_reference_context,
-                        external_identifier, created_at, updated_at
+                        external_identifier, created_at, updated_at,
+                        is_archived, archived_at
                  FROM patients
                  ORDER BY display_name COLLATE NOCASE, id",
             )
@@ -132,7 +126,8 @@ impl PatientRepository {
         self.connection
             .query_row(
                 "SELECT id, display_name, date_of_birth, sex_reference_context,
-                        external_identifier, created_at, updated_at
+                        external_identifier, created_at, updated_at,
+                        is_archived, archived_at
                  FROM patients WHERE id = ?1",
                 [id],
                 patient_from_row,
@@ -141,6 +136,20 @@ impl PatientRepository {
                 rusqlite::Error::QueryReturnedNoRows => PatientError::NotFound(id.to_owned()),
                 other => persistence_error(other),
             })
+    }
+
+    #[cfg(test)]
+    fn connection(&self) -> &Connection {
+        &self.connection
+    }
+
+    #[cfg(test)]
+    fn schema_version(&self) -> i64 {
+        self.connection
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
+            .expect("schema version")
     }
 }
 
@@ -153,6 +162,8 @@ fn patient_from_row(row: &Row<'_>) -> rusqlite::Result<Patient> {
         external_identifier: row.get(4)?,
         created_at: row.get(5)?,
         updated_at: row.get(6)?,
+        is_archived: row.get(7)?,
+        archived_at: row.get(8)?,
     })
 }
 
@@ -166,10 +177,27 @@ fn persistence_error(error: rusqlite::Error) -> PatientError {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
+    use rusqlite::{params, Connection};
     use tempfile::tempdir;
 
     use super::PatientRepository;
     use crate::domain::{PatientError, PatientInput};
+    use crate::migrations::LATEST_SCHEMA_VERSION;
+
+    const PERSISTENCE_TABLES: [&str; 10] = [
+        "confirmed_working_values",
+        "correction_history",
+        "extracted_values",
+        "extraction_versions",
+        "laboratory_reports",
+        "original_documents",
+        "original_values",
+        "patients",
+        "provenance_locations",
+        "schema_migrations",
+    ];
 
     fn input(name: &str, birth_date: &str) -> PatientInput {
         PatientInput {
@@ -178,6 +206,466 @@ mod tests {
             sex_reference_context: Some("female".to_owned()),
             external_identifier: None,
         }
+    }
+
+    fn create_version_one_database(path: &Path) {
+        let connection = Connection::open(path).expect("open version 1 database");
+        connection
+            .execute_batch(
+                "CREATE TABLE schema_migrations (
+                    version INTEGER PRIMARY KEY,
+                    applied_at TEXT NOT NULL
+                 );
+                 CREATE TABLE patients (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    display_name TEXT NOT NULL CHECK(length(trim(display_name)) > 0),
+                    date_of_birth TEXT NOT NULL,
+                    sex_reference_context TEXT,
+                    external_identifier TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                 );
+                 INSERT INTO schema_migrations(version, applied_at)
+                 VALUES (1, '2026-07-19T00:00:00.000Z');",
+            )
+            .expect("create version 1 schema");
+        connection
+            .execute(
+                "INSERT INTO patients (
+                    id, display_name, date_of_birth, sex_reference_context,
+                    external_identifier, created_at, updated_at
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    "legacy-patient-1",
+                    "Mara Legacy",
+                    "1984-06-12",
+                    "female",
+                    "LEGACY-001",
+                    "2026-07-19T00:01:00.000Z",
+                    "2026-07-19T00:02:00.000Z",
+                ],
+            )
+            .expect("insert version 1 patient");
+    }
+
+    fn table_names(connection: &Connection) -> Vec<String> {
+        let mut statement = connection
+            .prepare(
+                "SELECT name
+                 FROM sqlite_master
+                 WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+                 ORDER BY name",
+            )
+            .expect("prepare table list");
+        statement
+            .query_map([], |row| row.get(0))
+            .expect("query table list")
+            .collect::<Result<Vec<_>, _>>()
+            .expect("collect table list")
+    }
+
+    fn row_count(connection: &Connection, table: &str) -> i64 {
+        let query = format!("SELECT COUNT(*) FROM {table}");
+        connection
+            .query_row(&query, [], |row| row.get(0))
+            .expect("table row count")
+    }
+
+    fn assert_no_foreign_key_violations(connection: &Connection) {
+        let mut statement = connection
+            .prepare("PRAGMA foreign_key_check")
+            .expect("prepare foreign key check");
+        let mut rows = statement.query([]).expect("run foreign key check");
+        assert!(rows.next().expect("foreign key result").is_none());
+    }
+
+    fn insert_persistence_graph(connection: &Connection, patient_id: &str) {
+        connection
+            .execute(
+                "INSERT INTO laboratory_reports (
+                    id, patient_id, laboratory_name, specimen_collected_at,
+                    laboratory_received_at, report_released_at, revision_number,
+                    imported_at
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                params![
+                    "report-1",
+                    patient_id,
+                    "Synthetic Laboratory",
+                    "2026-01-10T08:00:00Z",
+                    "2026-01-10T09:00:00Z",
+                    "2026-01-10T12:00:00Z",
+                    "1",
+                    "2026-01-11T10:00:00Z",
+                ],
+            )
+            .expect("insert report");
+        connection
+            .execute(
+                "INSERT INTO original_documents (
+                    id, report_id, source_type, original_file_name, media_type,
+                    checksum_algorithm, content_checksum, storage_path,
+                    byte_size, recorded_at
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                params![
+                    "document-1",
+                    "report-1",
+                    "synthetic-test",
+                    "synthetic-report.txt",
+                    "text/plain",
+                    "test-checksum",
+                    "document-checksum-1",
+                    "sources/document-1.txt",
+                    128_i64,
+                    "2026-01-11T10:00:00Z",
+                ],
+            )
+            .expect("insert original document");
+        connection
+            .execute(
+                "INSERT INTO provenance_locations (
+                    id, report_id, original_document_id, locator_kind,
+                    page_number, text_excerpt, recorded_at
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    "location-1",
+                    "report-1",
+                    "document-1",
+                    "page",
+                    1_i64,
+                    "Synthetic parameter 4.6 mg/l",
+                    "2026-01-11T10:00:00Z",
+                ],
+            )
+            .expect("insert provenance location");
+        connection
+            .execute(
+                "INSERT INTO original_values (
+                    id, report_id, original_document_id, provenance_location_id,
+                    source_parameter_name, original_value_text, original_unit,
+                    original_reference_text, recorded_at
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                params![
+                    "original-value-1",
+                    "report-1",
+                    "document-1",
+                    "location-1",
+                    "Synthetic parameter",
+                    "4.6",
+                    "mg/l",
+                    "< 5.0",
+                    "2026-01-11T10:00:00Z",
+                ],
+            )
+            .expect("insert original value");
+        connection
+            .execute(
+                "INSERT INTO extraction_versions (
+                    id, report_id, original_document_id, version_number,
+                    extractor_id, extractor_version, extracted_at
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    "extraction-1",
+                    "report-1",
+                    "document-1",
+                    1_i64,
+                    "test-extractor",
+                    "1",
+                    "2026-01-11T10:01:00Z",
+                ],
+            )
+            .expect("insert extraction version");
+        connection
+            .execute(
+                "INSERT INTO extracted_values (
+                    id, report_id, original_document_id, extraction_version_id,
+                    original_value_id, extracted_parameter_name,
+                    numeric_value_text, extracted_unit, confidence_value,
+                    confidence_scheme, recorded_at
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                params![
+                    "extracted-value-1",
+                    "report-1",
+                    "document-1",
+                    "extraction-1",
+                    "original-value-1",
+                    "Synthetic parameter",
+                    "4.6",
+                    "mg/l",
+                    "high",
+                    "test-only",
+                    "2026-01-11T10:01:00Z",
+                ],
+            )
+            .expect("insert extracted value");
+        connection
+            .execute(
+                "INSERT INTO confirmed_working_values (
+                    id, original_value_id, extracted_value_id, version_number,
+                    parameter_name, numeric_value_text, unit,
+                    confirmation_kind, confirmed_at, recorded_at
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'explicit', ?8, ?9)",
+                params![
+                    "working-value-1",
+                    "original-value-1",
+                    "extracted-value-1",
+                    1_i64,
+                    "Synthetic parameter",
+                    "4.7",
+                    "mg/l",
+                    "2026-01-11T10:02:00Z",
+                    "2026-01-11T10:02:00Z",
+                ],
+            )
+            .expect("insert first confirmed working value");
+        connection
+            .execute(
+                "INSERT INTO confirmed_working_values (
+                    id, original_value_id, extracted_value_id, version_number,
+                    parameter_name, numeric_value_text, unit,
+                    confirmation_kind, confirmed_at, recorded_at
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'explicit', ?8, ?9)",
+                params![
+                    "working-value-2",
+                    "original-value-1",
+                    "extracted-value-1",
+                    2_i64,
+                    "Synthetic parameter",
+                    "4.8",
+                    "mg/l",
+                    "2026-01-11T10:03:00Z",
+                    "2026-01-11T10:03:00Z",
+                ],
+            )
+            .expect("insert corrected confirmed working value");
+        connection
+            .execute(
+                "INSERT INTO correction_history (
+                    id, original_value_id, previous_extracted_value_id,
+                    new_working_value_id, sequence_number, field_name,
+                    old_value, new_value, changed_at, reason
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                params![
+                    "correction-1",
+                    "original-value-1",
+                    "extracted-value-1",
+                    "working-value-1",
+                    1_i64,
+                    "numeric_value_text",
+                    "4.6",
+                    "4.7",
+                    "2026-01-11T10:02:00Z",
+                    "Synthetic correction",
+                ],
+            )
+            .expect("insert correction from extracted value");
+        connection
+            .execute(
+                "INSERT INTO correction_history (
+                    id, original_value_id, previous_working_value_id,
+                    new_working_value_id, sequence_number, field_name,
+                    old_value, new_value, changed_at, reason
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                params![
+                    "correction-2",
+                    "original-value-1",
+                    "working-value-1",
+                    "working-value-2",
+                    2_i64,
+                    "numeric_value_text",
+                    "4.7",
+                    "4.8",
+                    "2026-01-11T10:04:00Z",
+                    "Synthetic follow-up correction",
+                ],
+            )
+            .expect("insert correction from working value");
+    }
+
+    #[test]
+    fn creates_latest_schema_for_a_new_database() {
+        let repository = PatientRepository::in_memory().expect("new database");
+
+        assert_eq!(repository.schema_version(), LATEST_SCHEMA_VERSION);
+        assert_eq!(table_names(repository.connection()), PERSISTENCE_TABLES);
+        assert_no_foreign_key_violations(repository.connection());
+    }
+
+    #[test]
+    fn migrates_version_one_without_changing_patient_data_or_id() {
+        let directory = tempdir().expect("temporary directory");
+        let database_path = directory.path().join("version-one.sqlite3");
+        create_version_one_database(&database_path);
+
+        let repository = PatientRepository::open(&database_path).expect("migrate database");
+        let patients = repository.list().expect("migrated patients");
+
+        assert_eq!(repository.schema_version(), LATEST_SCHEMA_VERSION);
+        assert_eq!(patients.len(), 1);
+        let patient = &patients[0];
+        assert_eq!(patient.id, "legacy-patient-1");
+        assert_eq!(patient.display_name, "Mara Legacy");
+        assert_eq!(patient.date_of_birth, "1984-06-12");
+        assert_eq!(patient.sex_reference_context.as_deref(), Some("female"));
+        assert_eq!(patient.external_identifier.as_deref(), Some("LEGACY-001"));
+        assert_eq!(patient.created_at, "2026-07-19T00:01:00.000Z");
+        assert_eq!(patient.updated_at, "2026-07-19T00:02:00.000Z");
+        assert!(!patient.is_archived);
+        assert_eq!(patient.archived_at, None);
+    }
+
+    #[test]
+    fn enforces_foreign_keys_and_cascades_the_complete_patient_graph() {
+        let mut repository = PatientRepository::in_memory().expect("in-memory repository");
+        assert!(repository
+            .connection()
+            .execute(
+                "INSERT INTO laboratory_reports(id, patient_id, imported_at)
+                 VALUES ('orphan-report', 'missing-patient', '2026-01-01T00:00:00Z')",
+                [],
+            )
+            .is_err());
+
+        let patient = repository
+            .create(input("Mara Example", "1984-06-12"))
+            .expect("create patient");
+        insert_persistence_graph(repository.connection(), &patient.id);
+        assert_no_foreign_key_violations(repository.connection());
+
+        repository
+            .delete(&patient.id)
+            .expect("delete patient graph");
+        for table in PERSISTENCE_TABLES
+            .iter()
+            .copied()
+            .filter(|table| !matches!(*table, "schema_migrations" | "patients"))
+        {
+            assert_eq!(row_count(repository.connection(), table), 0, "{table}");
+        }
+        assert_no_foreign_key_violations(repository.connection());
+    }
+
+    #[test]
+    fn reopening_an_already_migrated_database_is_idempotent() {
+        let directory = tempdir().expect("temporary directory");
+        let database_path = directory.path().join("reopen.sqlite3");
+        let patient_id = {
+            let mut repository =
+                PatientRepository::open(&database_path).expect("first database open");
+            repository
+                .create(input("Mara Example", "1984-06-12"))
+                .expect("create persistent patient")
+                .id
+        };
+
+        for _ in 0..3 {
+            let repository =
+                PatientRepository::open(&database_path).expect("reopen migrated database");
+            assert_eq!(repository.schema_version(), LATEST_SCHEMA_VERSION);
+            assert_eq!(
+                repository.list().expect("persisted patients")[0].id,
+                patient_id
+            );
+        }
+    }
+
+    #[test]
+    fn immutable_versions_reject_updates_and_automatic_confirmation() {
+        let mut repository = PatientRepository::in_memory().expect("in-memory repository");
+        let patient = repository
+            .create(input("Mara Example", "1984-06-12"))
+            .expect("create patient");
+        insert_persistence_graph(repository.connection(), &patient.id);
+
+        for statement in [
+            "UPDATE original_documents SET original_file_name = 'changed' WHERE id = 'document-1'",
+            "UPDATE provenance_locations SET page_number = 2 WHERE id = 'location-1'",
+            "UPDATE original_values SET original_value_text = '9.9' WHERE id = 'original-value-1'",
+            "UPDATE extraction_versions SET extractor_version = '2' WHERE id = 'extraction-1'",
+            "UPDATE extracted_values SET numeric_value_text = '9.9' WHERE id = 'extracted-value-1'",
+            "UPDATE confirmed_working_values SET numeric_value_text = '9.9' WHERE id = 'working-value-1'",
+            "UPDATE correction_history SET reason = 'changed' WHERE id = 'correction-1'",
+            "DELETE FROM correction_history WHERE id = 'correction-1'",
+        ] {
+            assert!(repository.connection().execute(statement, []).is_err());
+        }
+
+        assert!(repository
+            .connection()
+            .execute(
+                "INSERT INTO confirmed_working_values (
+                    id, original_value_id, extracted_value_id, version_number,
+                    parameter_name, numeric_value_text, confirmation_kind,
+                    confirmed_at, recorded_at
+                 ) VALUES (
+                    'automatic-working-value', 'original-value-1',
+                    'extracted-value-1', 3, 'Synthetic parameter', '4.8',
+                    'automatic', '2026-01-11T10:04:00Z',
+                    '2026-01-11T10:04:00Z'
+                 )",
+                [],
+            )
+            .is_err());
+    }
+
+    #[test]
+    fn enforces_archive_consistency_and_version_uniqueness() {
+        let mut repository = PatientRepository::in_memory().expect("in-memory repository");
+        let patient = repository
+            .create(input("Mara Example", "1984-06-12"))
+            .expect("create patient");
+        insert_persistence_graph(repository.connection(), &patient.id);
+
+        assert!(repository
+            .connection()
+            .execute(
+                "UPDATE patients SET is_archived = 1 WHERE id = ?1",
+                [&patient.id],
+            )
+            .is_err());
+        repository
+            .connection()
+            .execute(
+                "UPDATE patients
+                 SET is_archived = 1, archived_at = '2026-01-12T00:00:00Z'
+                 WHERE id = ?1",
+                [&patient.id],
+            )
+            .expect("archive patient consistently");
+        let archived = repository.get(&patient.id).expect("archived patient");
+        assert!(archived.is_archived);
+        assert_eq!(
+            archived.archived_at.as_deref(),
+            Some("2026-01-12T00:00:00Z")
+        );
+
+        assert!(repository
+            .connection()
+            .execute(
+                "INSERT INTO extraction_versions (
+                    id, report_id, original_document_id, version_number,
+                    extractor_id, extractor_version, extracted_at
+                 ) VALUES (
+                    'duplicate-extraction', 'report-1', 'document-1', 1,
+                    'test-extractor', '2', '2026-01-11T11:00:00Z'
+                 )",
+                [],
+            )
+            .is_err());
+        assert!(repository
+            .connection()
+            .execute(
+                "INSERT INTO correction_history (
+                    id, original_value_id, previous_working_value_id,
+                    new_working_value_id, sequence_number, field_name,
+                    old_value, new_value, changed_at
+                 ) VALUES (
+                    'duplicate-sequence', 'original-value-1',
+                    'working-value-1', 'working-value-2', 1, 'unit',
+                    'mg/l', 'g/l', '2026-01-11T11:00:00Z'
+                 )",
+                [],
+            )
+            .is_err());
     }
 
     #[test]
@@ -189,6 +677,8 @@ mod tests {
             .create(input("Mara Example", "1984-06-12"))
             .expect("create patient");
         assert!(!created.id.is_empty());
+        assert!(!created.is_archived);
+        assert_eq!(created.archived_at, None);
         assert_eq!(
             repository.list().expect("patient list"),
             vec![created.clone()]

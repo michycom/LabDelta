@@ -12,6 +12,8 @@ pub struct Patient {
     pub external_identifier: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    pub is_archived: bool,
+    pub archived_at: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
