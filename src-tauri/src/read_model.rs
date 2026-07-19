@@ -33,9 +33,19 @@ impl From<IdentifierError> for ReadError {
 pub(crate) fn list_patients(connection: &Connection) -> Result<Vec<PatientSummary>, ReadError> {
     let mut statement = connection
         .prepare(
-            "SELECT id, display_name, date_of_birth, is_archived
-             FROM patients
-             ORDER BY display_name COLLATE NOCASE, id",
+            "SELECT patient.id, patient.display_name, patient.date_of_birth,
+                    patient.is_archived
+             FROM patients AS patient
+             WHERE EXISTS (
+                SELECT 1
+                FROM laboratory_reports AS report
+                JOIN original_documents AS document
+                  ON document.report_id = report.id
+                JOIN demo_seed_documents AS seed_document
+                  ON seed_document.original_document_id = document.id
+                WHERE report.patient_id = patient.id
+             )
+             ORDER BY patient.display_name COLLATE NOCASE, patient.id",
         )
         .map_err(persistence_error)?;
     let rows = statement
@@ -72,7 +82,16 @@ pub(crate) fn patient_details(
                     external_identifier, created_at, updated_at,
                     is_archived, archived_at
              FROM patients
-             WHERE id = ?1",
+             WHERE id = ?1
+               AND EXISTS (
+                    SELECT 1
+                    FROM laboratory_reports AS report
+                    JOIN original_documents AS document
+                      ON document.report_id = report.id
+                    JOIN demo_seed_documents AS seed_document
+                      ON seed_document.original_document_id = document.id
+                    WHERE report.patient_id = patients.id
+               )",
             [patient_id.as_ref()],
             |row| {
                 Ok((
@@ -119,6 +138,13 @@ pub(crate) fn laboratory_reports(
                     revision_number, imported_at
              FROM laboratory_reports
              WHERE patient_id = ?1
+               AND EXISTS (
+                    SELECT 1
+                    FROM original_documents AS document
+                    JOIN demo_seed_documents AS seed_document
+                      ON seed_document.original_document_id = document.id
+                    WHERE document.report_id = laboratory_reports.id
+               )
              ORDER BY specimen_collected_at, laboratory_received_at,
                       report_released_at, revision_number, imported_at, id",
         )
@@ -189,6 +215,8 @@ pub(crate) fn confirmed_report_values(
              JOIN original_documents AS document
                ON document.id = original.original_document_id
               AND document.report_id = original.report_id
+             JOIN demo_seed_documents AS seed_document
+               ON seed_document.original_document_id = document.id
              WHERE original.report_id = ?1
                AND working.confirmation_kind = 'explicit'
                AND working.version_number = (
@@ -414,7 +442,17 @@ fn nonnegative_u32(value: Option<i64>, name: &str, id: &str) -> Result<u32, Read
 fn ensure_patient_exists(connection: &Connection, patient_id: &PatientId) -> Result<(), ReadError> {
     let exists = connection
         .query_row(
-            "SELECT EXISTS(SELECT 1 FROM patients WHERE id = ?1)",
+            "SELECT EXISTS(
+                SELECT 1
+                FROM patients AS patient
+                JOIN laboratory_reports AS report
+                  ON report.patient_id = patient.id
+                JOIN original_documents AS document
+                  ON document.report_id = report.id
+                JOIN demo_seed_documents AS seed_document
+                  ON seed_document.original_document_id = document.id
+                WHERE patient.id = ?1
+             )",
             [patient_id.as_ref()],
             |row| row.get::<_, bool>(0),
         )
@@ -431,7 +469,15 @@ fn ensure_patient_exists(connection: &Connection, patient_id: &PatientId) -> Res
 fn ensure_report_exists(connection: &Connection, report_id: &ReportId) -> Result<(), ReadError> {
     let exists = connection
         .query_row(
-            "SELECT EXISTS(SELECT 1 FROM laboratory_reports WHERE id = ?1)",
+            "SELECT EXISTS(
+                SELECT 1
+                FROM laboratory_reports AS report
+                JOIN original_documents AS document
+                  ON document.report_id = report.id
+                JOIN demo_seed_documents AS seed_document
+                  ON seed_document.original_document_id = document.id
+                WHERE report.id = ?1
+             )",
             [report_id.as_ref()],
             |row| row.get::<_, bool>(0),
         )
@@ -461,7 +507,9 @@ fn persistence_error(error: rusqlite::Error) -> ReadError {
 mod tests {
     use super::{confirmed_report_values, laboratory_reports, list_patients, patient_details};
     use crate::demo_seed;
-    use crate::domain::{ConfirmationStatus, PersistedValue, ProvenanceLocator, ReportId};
+    use crate::domain::{
+        ConfirmationStatus, PatientInput, PersistedValue, ProvenanceLocator, ReportId,
+    };
     use crate::persistence::PatientRepository;
 
     fn seeded_repository() -> PatientRepository {
@@ -573,5 +621,31 @@ mod tests {
             .expect_err("missing report error");
 
         assert!(matches!(error, super::ReadError::NotFound { .. }));
+    }
+
+    #[test]
+    fn hides_records_without_approved_seed_provenance() {
+        let mut repository = PatientRepository::in_memory().expect("database");
+        let legacy_patient = repository
+            .create(PatientInput {
+                display_name: "Unapproved local record".to_owned(),
+                date_of_birth: "1990-01-01".to_owned(),
+                sex_reference_context: None,
+                external_identifier: Some("LOCAL-UNAPPROVED".to_owned()),
+            })
+            .expect("unapproved local patient");
+        demo_seed::apply(&mut repository).expect("seed");
+
+        let patients = list_patients(repository.connection()).expect("approved patients");
+
+        assert_eq!(patients.len(), 3);
+        assert!(patients
+            .iter()
+            .all(|patient| patient.display_name != "Unapproved local record"));
+        let legacy_id = crate::domain::PatientId::try_from(legacy_patient.id).expect("legacy ID");
+        assert!(matches!(
+            patient_details(repository.connection(), &legacy_id),
+            Err(super::ReadError::NotFound { .. })
+        ));
     }
 }
