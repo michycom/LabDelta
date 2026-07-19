@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as patientApi from "./api/patients";
 import App from "./App";
+import { DEMO_ACKNOWLEDGEMENT_KEY } from "./state/demoAcknowledgement";
 import type { Patient } from "./types";
 
 vi.mock("./api/patients", () => ({
@@ -25,6 +26,7 @@ afterEach(cleanup);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.localStorage.setItem(DEMO_ACKNOWLEDGEMENT_KEY, "true");
   vi.mocked(patientApi.listPatients).mockResolvedValue([patient]);
   vi.mocked(patientApi.createPatient).mockImplementation(async input => ({
     ...patient,

@@ -1,6 +1,7 @@
 import { Activity, BarChart3, FileText, FlaskConical, HelpCircle, LayoutDashboard, Settings, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import type { AppSection } from "../types";
+import { DemoBanner } from "./DemoDisclaimer";
 
 const navigation = [
   ["Dashboard", LayoutDashboard, "dashboard"], ["Patients", Users, "patients"], ["Laboratory reports", FileText, null],
@@ -15,6 +16,6 @@ export function Shell({ children, activeSection, onNavigate }: { children: React
       <div className="privacy-note">⌾<span>Data remains<br />local on this device.</span></div>
       <small>Version 0.1.0</small>
     </aside>
-    <main className="main-area">{children}</main>
+    <main className="main-area"><DemoBanner />{children}</main>
   </div>;
 }
