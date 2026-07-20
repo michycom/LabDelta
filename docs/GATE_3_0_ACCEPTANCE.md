@@ -26,7 +26,8 @@ real-data path was added.
 
 ## Gate 3.0B - demo foundation
 
-- Three embedded JSON fixtures are approved by fixture ID, version, demo
+- Three embedded JSON fixture-v2 files for Eva Mittel, Dirk Mayer, and Daniel
+  Power are approved by fixture ID, version, demo
   marker, and SHA-256. Unknown or changed content fails closed.
 - Seed version `contest-demo-v1` produces deterministic IDs and an idempotent,
   verified local SQLite graph. Only explicitly confirmed working values are
@@ -79,7 +80,7 @@ git diff --check
 The PDF is additionally checked by extracting its selectable text and by
 rendering every page to PNG for visual inspection.
 
-Validated on 2026-07-20: all commands above pass (28 Rust tests and 9 frontend
+Validated on 2026-07-20: all commands above pass (29 Rust tests and 9 frontend
 tests), and the macOS `LabDelta.app` bundle is produced. The optional DMG wrapper
 script fails in the managed build environment after the application bundle is
 already complete, so the contest gate uses the directly testable `.app` bundle.

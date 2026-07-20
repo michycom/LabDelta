@@ -16,7 +16,7 @@ Disabled future sources cannot become the default.
 | Source | Version | Availability | Default | Content implemented |
 | --- | ---: | --- | --- | --- |
 | Report Reference | 1 | Active | Yes | Supplied original-report reference text |
-| Demo Reference Catalog v1 | 1 | Active | No | Nine synthetic Demo-Markers |
+| Demo Reference Catalog v1 | 1 | Active | No | Nine synthetic contest parameters |
 | IFCC | 1 | Future - disabled | No | None |
 | DGKL | 1 | Future - disabled | No | None |
 | Local Laboratory | 1 | Future - disabled | No | None |
@@ -28,11 +28,11 @@ never applied automatically to report values.
 
 ## Demo Reference Catalog v1
 
-The catalog contains nine synthetic parameters (`Demo-Marker Alpha` through
-`Demo-Marker Iota`) with synthetic `demo-unit-*` units and synthetic text
-bounds. Every row states that its interval has no medical meaning. The catalog
-and every entry are tied to catalog version 1 and a deterministic display
-order.
+The catalog contains Leukocytes, Erythrocytes, Hemoglobin, Hematocrit, MCV,
+MCH, MCHC, Platelets, and CRP. Units and intervals are synthetic contest data;
+they are not presented as generally applicable medical reference values. Every
+row states that its interval has no medical meaning. The catalog and every
+entry are tied to catalog version 1 and a deterministic display order.
 
 No real parameter mapping, standard code, clinical reference interval,
 conversion, patient-context rule, or medical interpretation is implied. The

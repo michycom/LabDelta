@@ -463,6 +463,39 @@ mod tests {
         EmbeddedSource, FixtureError, DERIVED_ARTIFACTS, DERIVED_ARTIFACTS_JSON, MANIFEST_JSON,
     };
 
+    fn fixture<'a>(approved: &'a super::ApprovedFixtureSet, name: &str) -> &'a super::DemoFixture {
+        &approved
+            .fixtures
+            .iter()
+            .find(|item| item.fixture.patient.display_name == name)
+            .expect("named synthetic fixture")
+            .fixture
+    }
+
+    fn numeric_value(report: &super::FixtureReport, key: &str) -> f64 {
+        report
+            .values
+            .iter()
+            .find(|value| value.source_key == key)
+            .expect("fixture value")
+            .original_value
+            .parse()
+            .expect("numeric fixture value")
+    }
+
+    fn within_supplied_interval(value: &super::FixtureValue) -> bool {
+        let number: f64 = value.original_value.parse().expect("numeric fixture value");
+        if let Some(upper) = value.reference_range.strip_prefix('<') {
+            return number < upper.parse::<f64>().expect("upper reference bound");
+        }
+        let (lower, upper) = value
+            .reference_range
+            .split_once('-')
+            .expect("two-sided synthetic reference interval");
+        number >= lower.parse::<f64>().expect("lower reference bound")
+            && number <= upper.parse::<f64>().expect("upper reference bound")
+    }
+
     #[test]
     fn validates_the_embedded_manifest_and_fixture_set() {
         let approved = approved_fixtures().expect("approved embedded fixtures");
@@ -499,6 +532,61 @@ mod tests {
             validate_derived_artifacts(DERIVED_ARTIFACTS_JSON, &artifacts),
             Err(FixtureError::ChecksumMismatch { .. })
         ));
+    }
+
+    #[test]
+    fn fixture_scenarios_match_the_documented_mathematical_cases() {
+        let approved = approved_fixtures().expect("approved embedded fixtures");
+        let eva = fixture(&approved, "Eva Mittel");
+        assert_eq!(eva.reports.len(), 2);
+        assert!(eva.reports.iter().all(|report| report
+            .values
+            .iter()
+            .filter(|value| !matches!(value.source_key.as_str(), "height" | "weight"))
+            .all(within_supplied_interval)));
+
+        let dirk = fixture(&approved, "Dirk Mayer");
+        assert_eq!(dirk.reports.len(), 3);
+        let fasting_glucose = dirk
+            .reports
+            .iter()
+            .map(|report| numeric_value(report, "fasting-glucose"))
+            .collect::<Vec<_>>();
+        assert!(fasting_glucose.windows(2).all(|pair| pair[0] < pair[1]));
+        let outside_parameter_count = dirk
+            .reports
+            .last()
+            .expect("latest Dirk report")
+            .values
+            .iter()
+            .filter(|value| !within_supplied_interval(value))
+            .count();
+        assert!(outside_parameter_count >= 2);
+
+        let daniel = fixture(&approved, "Daniel Power");
+        assert_eq!(daniel.reports.len(), 2);
+        let latest = daniel.reports.last().expect("latest Daniel report");
+        assert!(!within_supplied_interval(
+            latest
+                .values
+                .iter()
+                .find(|value| value.source_key == "alt")
+                .expect("ALT")
+        ));
+        let previous_crp = numeric_value(&daniel.reports[0], "crp");
+        let latest_crp = latest
+            .values
+            .iter()
+            .find(|value| value.source_key == "crp")
+            .expect("CRP");
+        assert_ne!(
+            previous_crp,
+            latest_crp
+                .original_value
+                .parse::<f64>()
+                .expect("CRP number")
+        );
+        assert!(within_supplied_interval(latest_crp));
     }
 
     #[test]

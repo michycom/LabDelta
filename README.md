@@ -19,8 +19,9 @@ npm run tauri dev
 ```
 
 On first launch, acknowledge the synthetic-data notice. The dashboard then
-shows three deterministic demo patients, their reports, explicitly confirmed
-working values, source provenance, and a visible reference-source selector.
+shows the deterministic synthetic patients Eva Mittel, Dirk Mayer, and Daniel
+Power, their reports, explicitly confirmed working values, transparent static
+profile assignments, source provenance, and a visible reference-source selector.
 Report Reference remains the default; the optional Demo Reference Catalog v1
 is synthetic and is never applied automatically. `scripts/generate_demo_artifacts.py`
 recreates the canonical CSV and selectable-text PDF from the approved JSON
