@@ -44,8 +44,13 @@ reference-interval classification and exact arithmetic comparison.
   non-diagnostic sorting, versioned profile counts, and compact provenance
   details are calculated in Rust and rendered as typed results in React.
 - A native Tauri menu exposes local navigation and information views. Import is
-  information-only; unavailable features and all next-sprint Demo controls are
-  visible but disabled.
+  information-only. Play, Pause, Stop, Restart, English, and Deutsch control a
+  ten-step walkthrough of the real application; Reset Demo Data remains
+  disabled.
+- The walkthrough uses centralized bilingual step definitions, animated
+  subtitles, local Web Speech synthesis when available, and resilient
+  highlighting of real asynchronously loaded UI elements. It contains no video,
+  duplicate interface, import operation, medical rule, cloud, or runtime AI.
 - Seed, future controlled fixture import, and any future real-data path remain
   separate. Gate 3.0 implements only the seed.
 
@@ -88,5 +93,5 @@ git diff --check
 The PDF is additionally checked by extracting its selectable text and by
 rendering every page to PNG for visual inspection.
 
-Validated on 2026-07-20: all commands above pass (34 Rust tests and 13 frontend
+Validated on 2026-07-20: all commands above pass (35 Rust tests and 19 frontend
 tests), and the macOS `LabDelta.app` bundle is produced.

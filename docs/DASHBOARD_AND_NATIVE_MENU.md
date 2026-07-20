@@ -40,8 +40,9 @@ Reference Catalog v1 remains optional and is never applied automatically.
 - **Patient / Report / View:** local selection, report navigation, provenance,
   dashboard/sidebar navigation, and full screen are active. Show Original Source
   is disabled because there is no separate meaningful source-view surface.
-- **Demo:** Play, Pause, Stop, Restart, both language choices, and Reset Demo
-  Data are visible but disabled. No demo state machine exists in this sprint.
+- **Demo:** Play, Pause, Stop, Restart, English, and Deutsch drive the central
+  ten-step walkthrough. Reset Demo Data remains visible but disabled because the
+  walkthrough performs no seed mutation.
 - **Help:** all entries open local informational views without network access.
 
 No file dialog, drag-and-drop target, import operation, parser, or write command
