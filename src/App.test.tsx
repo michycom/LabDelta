@@ -139,6 +139,9 @@ describe("persisted synthetic demo flow", () => {
     expect(patientApi.getPatientDetails).toHaveBeenCalledWith(patient.id);
     expect(patientApi.listLaboratoryReports).toHaveBeenCalledWith(patient.id);
     expect(patientApi.listConfirmedReportValues).toHaveBeenCalledWith(report.id);
+    for (const target of ["patient-detail", "comparison-table", "profile-overview", "parameter-history", "original-document", "document-page", "provenance-panel"]) {
+      expect(document.querySelector(`[data-demo-target="${target}"]`)).toBeInTheDocument();
+    }
   });
 
   it("keeps report reference default and exposes only the demo catalog as another active choice", async () => {
@@ -212,6 +215,9 @@ describe("persisted synthetic demo flow", () => {
     const names = screen.getAllByRole("button").filter(button => ["Dirk Mayer", "Daniel Power", "Eva Mittel"].some(name => button.textContent?.includes(name)));
     expect(names.map(button => button.textContent)).toEqual(expect.arrayContaining([expect.stringContaining("Dirk Mayer"), expect.stringContaining("Daniel Power"), expect.stringContaining("Eva Mittel")]));
     expect(patientApi.getDashboard).toHaveBeenCalledWith("all");
+    for (const target of ["dashboard-overview", "dashboard-filters", "dashboard-patient-table"]) {
+      expect(document.querySelector(`[data-demo-target="${target}"]`)).toBeInTheDocument();
+    }
     const obsoleteMarkerPrefix = ["Demo", "Marker"].join("-");
     expect(document.body).not.toHaveTextContent(obsoleteMarkerPrefix);
   });
@@ -232,7 +238,8 @@ describe("persisted synthetic demo flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "Import" }));
     expect(screen.getByText("Manual import is disabled in the Contest Demo. LabDelta uses only approved synthetic fixtures.")).toBeInTheDocument();
     expect(document.querySelector('input[type="file"]')).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /choose file|select file/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Choose file" })).toBeDisabled();
+    expect(document.querySelector('[data-demo-target="import-information"]')).toBeInTheDocument();
   });
 
   it("controls the real walkthrough with subtitles and language selection", async () => {
@@ -240,21 +247,22 @@ describe("persisted synthetic demo flow", () => {
     await screen.findByRole("heading", { name: "Approved synthetic patients" });
 
     fireEvent.click(screen.getByRole("button", { name: "Play demo" }));
-    expect(screen.getByText(/Welcome to LabDelta/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Transparent longitudinal laboratory data" })).toBeInTheDocument();
+    expect(screen.getAllByText(/Laboratory data is often distributed/).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Previous demo step" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Next demo step" }));
     expect(screen.getByText(/dashboard reads three synthetic patients/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Previous demo step" }));
-    expect(screen.getByText(/Welcome to LabDelta/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Transparent longitudinal laboratory data" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Pause demo" }));
     expect(screen.getByText("Paused")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "DE" }));
-    expect(screen.getByText(/Willkommen bei LabDelta/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Laborwerte liegen häufig/).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Stop demo" }));
-    expect(screen.queryByText(/Willkommen bei LabDelta/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Laborwerte liegen häufig/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Restart demo" }));
-    expect(screen.getByText(/Willkommen bei LabDelta/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Laborwerte liegen häufig/).length).toBeGreaterThan(0);
   });
 });

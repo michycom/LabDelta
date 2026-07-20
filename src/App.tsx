@@ -4,13 +4,15 @@ import { DemoDataWorkspace } from "./components/DemoDataWorkspace";
 import { DashboardOverview } from "./components/DashboardOverview";
 import { DemoDisclaimer } from "./components/DemoDisclaimer";
 import { DemoWalkthroughControls } from "./components/DemoWalkthroughControls";
+import { DemoIntroScreen } from "./components/DemoIntroScreen";
 import { Header } from "./components/Header";
 import { PatientManagement } from "./components/PatientManagement";
+import { ImportInformationView } from "./components/ImportInformationView";
 import { Shell } from "./components/Shell";
 import { useDemoData } from "./hooks/useDemoData";
 import { useDemoWalkthrough } from "./demo/useDemoWalkthrough";
 import { hasAcknowledgedDemoDisclaimer, storeDemoDisclaimerAcknowledgement } from "./state/demoAcknowledgement";
-import type { AppSection } from "./types";
+import type { AppSection, PatientListItem } from "./types";
 
 export default function App() {
   const [hasAcknowledgedDisclaimer, setHasAcknowledgedDisclaimer] = useState(hasAcknowledgedDemoDisclaimer);
@@ -125,7 +127,7 @@ function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; seq
         demoData.selectPatient(patientId);
         setActiveSection("reports");
       }}
-    /> : <InformationView section={activeSection} />}
+    /> : <InformationView patient={demoData.selectedPatient} section={activeSection} />}
     <footer><strong>Research and demonstration project.</strong> Not clinically validated and not released for medical use. No diagnosis, prognosis, treatment, test, or therapy recommendation. Synthetic source documents remain authoritative for this demonstration.</footer>
     <DemoWalkthroughControls
       language={walkthrough.state.language}
@@ -141,11 +143,12 @@ function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; seq
       stepCount={walkthrough.stepCount}
       stepIndex={walkthrough.state.stepIndex}
     />
+    {(walkthrough.state.playback === "playing" || walkthrough.state.playback === "paused") && walkthrough.step.id === "introduction" ? <DemoIntroScreen durationMs={walkthrough.step.durationMs} language={walkthrough.state.language} paused={walkthrough.state.playback === "paused"} /> : null}
   </Shell>;
 }
 
-function InformationView({ section }: { section: Exclude<AppSection, "dashboard" | "patients" | "reports"> }) {
-  if (section === "import") return <section className="information-view" data-demo-target="import-boundary"><span className="section-kicker">Contest Demo limitation</span><h1>Import</h1><p>Manual import is disabled in the Contest Demo. LabDelta uses only approved synthetic fixtures.</p><p>No file dialog, drag-and-drop, parser, or write operation is available.</p></section>;
+function InformationView({ section, patient }: { section: Exclude<AppSection, "dashboard" | "patients" | "reports">; patient: PatientListItem | null }) {
+  if (section === "import") return <ImportInformationView patient={patient} />;
   if (section === "about") return <section className="information-view"><span className="section-kicker">LabDelta Contest Demo</span><h1>About LabDelta</h1><p>Local-first research and demonstration software using only approved synthetic fixtures.</p></section>;
   if (section === "limitations") return <section className="information-view"><span className="section-kicker">Demo Data and Limitations</span><h1>Contest Demo limitations</h1><p>No clinical validation, medical interpretation, diagnosis, therapy, general import, cloud, telemetry, or runtime AI.</p></section>;
   if (section === "documentation") return <section className="information-view"><span className="section-kicker">Local documentation</span><h1>Project Documentation</h1><p>The binding project, acceptance, reference catalog, and fixture documentation is stored locally in the docs directory.</p></section>;

@@ -17,10 +17,10 @@ export const DEMO_STEPS: readonly DemoStep[] = [
     id: "introduction",
     section: "dashboard",
     target: "demo-banner",
-    durationMs: 6500,
+    durationMs: 15000,
     subtitle: {
-      en: "Welcome to LabDelta. This demonstration uses only approved synthetic data and produces no medical conclusions.",
-      de: "Willkommen bei LabDelta. Diese Demonstration verwendet ausschließlich freigegebene synthetische Daten und erzeugt keine medizinischen Schlussfolgerungen."
+      en: "Laboratory data is often distributed across multiple reports and isolated points in time. LabDelta demonstrates how longitudinal laboratory information can be organized transparently, compared mathematically, and traced back to its original source.",
+      de: "Laborwerte liegen häufig über mehrere Berichte und einzelne Zeitpunkte verteilt vor. LabDelta demonstriert, wie longitudinale Laborinformationen transparent organisiert, mathematisch verglichen und bis zu ihrer Originalquelle zurückverfolgt werden können."
     }
   },
   {
@@ -103,7 +103,7 @@ export const DEMO_STEPS: readonly DemoStep[] = [
   {
     id: "import-boundary",
     section: "import",
-    target: "import-boundary",
+    target: "import-information",
     durationMs: 6500,
     subtitle: {
       en: "Manual import is disabled. The Contest Demo uses only approved synthetic fixtures and opens no file dialog.",
