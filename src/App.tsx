@@ -66,6 +66,8 @@ function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; seq
     if (nativeAction.id === "demo-pause") walkthrough.pause();
     if (nativeAction.id === "demo-stop") walkthrough.stop();
     if (nativeAction.id === "demo-restart") walkthrough.restart();
+    if (nativeAction.id === "demo-previous-step") walkthrough.previous();
+    if (nativeAction.id === "demo-next-step") walkthrough.next();
     if (nativeAction.id === "language-english") walkthrough.setLanguage("en");
     if (nativeAction.id === "language-german") walkthrough.setLanguage("de");
     if (nativeAction.id === "next-patient" || nativeAction.id === "previous-patient") {
@@ -131,6 +133,8 @@ function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; seq
       onPause={walkthrough.pause}
       onPlay={walkthrough.play}
       onRestart={walkthrough.restart}
+      onPrevious={walkthrough.previous}
+      onNext={walkthrough.next}
       onStop={walkthrough.stop}
       playback={walkthrough.state.playback}
       step={walkthrough.step}

@@ -241,6 +241,11 @@ describe("persisted synthetic demo flow", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Play demo" }));
     expect(screen.getByText(/Welcome to LabDelta/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Previous demo step" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Next demo step" }));
+    expect(screen.getByText(/dashboard reads three synthetic patients/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Previous demo step" }));
+    expect(screen.getByText(/Welcome to LabDelta/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Pause demo" }));
     expect(screen.getByText("Paused")).toBeInTheDocument();

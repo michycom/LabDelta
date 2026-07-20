@@ -65,6 +65,8 @@ export function useDemoWalkthrough() {
     pause: () => dispatch({ type: "pause" }),
     stop: () => dispatch({ type: "stop" }),
     restart: () => dispatch({ type: "restart" }),
+    previous: () => dispatch({ type: "previous" }),
+    next: () => dispatch({ type: "next" }),
     setLanguage: (language: "en" | "de") => dispatch({ type: "setLanguage", language })
   };
 }

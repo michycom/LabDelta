@@ -23,4 +23,13 @@ describe("demo walkthrough state machine", () => {
     expect(demoReducer(finalStep, { type: "advance" }).playback).toBe("completed");
     expect(demoReducer(finalStep, { type: "setLanguage", language: "de" })).toMatchObject({ language: "de", stepIndex: 9 });
   });
+
+  it("moves exactly one step and remains inside the sequence", () => {
+    expect(demoReducer(INITIAL_DEMO_STATE, { type: "previous" }).stepIndex).toBe(0);
+    const next = demoReducer(INITIAL_DEMO_STATE, { type: "next" });
+    expect(next).toMatchObject({ stepIndex: 1, playback: "idle" });
+    expect(demoReducer(next, { type: "previous" }).stepIndex).toBe(0);
+    const finalStep = { ...INITIAL_DEMO_STATE, stepIndex: DEMO_STEPS.length - 1 };
+    expect(demoReducer(finalStep, { type: "next" }).stepIndex).toBe(DEMO_STEPS.length - 1);
+  });
 });

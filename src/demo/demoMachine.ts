@@ -14,6 +14,8 @@ export type DemoAction =
   | { type: "pause" }
   | { type: "stop" }
   | { type: "restart" }
+  | { type: "previous" }
+  | { type: "next" }
   | { type: "advance" }
   | { type: "setLanguage"; language: DemoLanguage };
 
@@ -37,6 +39,10 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       return { ...state, playback: "stopped", stepIndex: 0 };
     case "restart":
       return { ...state, playback: "playing", stepIndex: 0 };
+    case "previous":
+      return { ...state, stepIndex: Math.max(0, state.stepIndex - 1) };
+    case "next":
+      return { ...state, stepIndex: Math.min(DEMO_STEPS.length - 1, state.stepIndex + 1) };
     case "advance":
       if (state.playback !== "playing") return state;
       if (state.stepIndex === DEMO_STEPS.length - 1) return { ...state, playback: "completed" };

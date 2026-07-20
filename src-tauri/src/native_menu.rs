@@ -32,9 +32,11 @@ pub(crate) const ENTRIES: &[MenuEntrySpec] = &[
     entry("view-import", "Import", true),
     entry("toggle-sidebar", "Toggle Sidebar", true),
     entry("enter-full-screen", "Enter Full Screen", true),
-    entry("demo-play", "Play Demo", true),
-    entry("demo-pause", "Pause Demo", true),
-    entry("demo-stop", "Stop Demo", true),
+    entry("demo-play", "▶ Play Demo", true),
+    entry("demo-previous-step", "◀ Previous Step", true),
+    entry("demo-next-step", "▶ Next Step", true),
+    entry("demo-pause", "⏸ Pause", true),
+    entry("demo-stop", "⏹ Stop", true),
     entry("demo-restart", "Restart Demo", true),
     entry("language-english", "English", true),
     entry("language-german", "Deutsch", true),
@@ -109,12 +111,16 @@ fn build(app: &App) -> tauri::Result<Menu<tauri::Wry>> {
     let demo = SubmenuBuilder::new(app, "Demo")
         .items(&[
             &menu_item(app, "demo-play")?,
+            &menu_item(app, "demo-previous-step")?,
+            &menu_item(app, "demo-next-step")?,
             &menu_item(app, "demo-pause")?,
             &menu_item(app, "demo-stop")?,
-            &menu_item(app, "demo-restart")?,
-            &language,
-            &menu_item(app, "reset-demo-data")?,
         ])
+        .separator()
+        .item(&menu_item(app, "demo-restart")?)
+        .separator()
+        .item(&language)
+        .item(&menu_item(app, "reset-demo-data")?)
         .build()?;
     let help = submenu(
         app,
@@ -179,6 +185,8 @@ mod tests {
     fn walkthrough_and_language_actions_are_enabled() {
         for id in [
             "demo-play",
+            "demo-previous-step",
+            "demo-next-step",
             "demo-pause",
             "demo-stop",
             "demo-restart",
