@@ -166,8 +166,12 @@ fn insert_seed(
                     "INSERT INTO laboratory_reports (
                         id, patient_id, laboratory_name, specimen_collected_at,
                         laboratory_received_at, report_released_at,
-                        revision_number, imported_at
-                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                        revision_number, imported_at, fixture_id,
+                        fixture_version, demo_marker, verified_checksum,
+                        extracted_identity_json, identity_match_status,
+                        identity_manually_confirmed
+                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13,
+                               'confirmed', 1)",
                     params![
                         report_id,
                         patient_id,
@@ -177,6 +181,12 @@ fn insert_seed(
                         report.report_released_at,
                         report.revision_number,
                         report.imported_at,
+                        entry.fixture_id,
+                        entry.fixture_version,
+                        entry.demo_marker,
+                        entry.sha256,
+                        serde_json::to_string(&fixture.patient.external_identifier)
+                            .map_err(|error| conflict(seed_version, &error.to_string()))?,
                     ],
                 )
                 .map_err(persistence_error)?;

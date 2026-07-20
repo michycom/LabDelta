@@ -2,7 +2,7 @@ use rusqlite::{params, Connection};
 
 use crate::domain::PatientError;
 
-pub(crate) const LATEST_SCHEMA_VERSION: i64 = 4;
+pub(crate) const LATEST_SCHEMA_VERSION: i64 = 5;
 
 struct Migration {
     version: i64,
@@ -25,6 +25,10 @@ const MIGRATIONS: &[Migration] = &[
     Migration {
         version: 4,
         sql: include_str!("../migrations/0004_gate_3_0_c_catalog.sql"),
+    },
+    Migration {
+        version: 5,
+        sql: include_str!("../migrations/0005_gate_3_0_completion.sql"),
     },
 ];
 

@@ -202,7 +202,7 @@ mod tests {
     use crate::domain::{PatientError, PatientInput};
     use crate::migrations::LATEST_SCHEMA_VERSION;
 
-    const PERSISTENCE_TABLES: [&str; 24] = [
+    const PERSISTENCE_TABLES: [&str; 25] = [
         "analysis_contract_input_refs",
         "analysis_contract_rule_refs",
         "analysis_contracts",
@@ -221,6 +221,7 @@ mod tests {
         "original_values",
         "parameter_external_codes",
         "parameter_names",
+        "patient_body_measurements",
         "patients",
         "profile_memberships",
         "provenance_locations",
