@@ -41,13 +41,18 @@ export function useDemoWalkthrough() {
   useEffect(() => {
     if (state.playback !== "playing" && state.playback !== "paused") return;
     let target: HTMLElement | null = null;
-    const timer = window.setTimeout(() => {
+    const applyHighlight = () => {
+      if (target) return;
       target = document.querySelector<HTMLElement>(`[data-demo-target="${step.target}"]`);
       target?.classList.add("demo-walk-highlight");
       target?.scrollIntoView?.({ behavior: "smooth", block: "center" });
-    }, 180);
+    };
+    const timer = window.setTimeout(applyHighlight, 180);
+    const observer = new MutationObserver(() => applyHighlight());
+    observer.observe(document.body, { childList: true, subtree: true });
     return () => {
       window.clearTimeout(timer);
+      observer.disconnect();
       target?.classList.remove("demo-walk-highlight");
     };
   }, [state.playback, state.stepIndex, step.target]);
