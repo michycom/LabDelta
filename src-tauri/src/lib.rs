@@ -4,6 +4,7 @@ mod demo_fixtures;
 mod demo_seed;
 mod domain;
 mod migrations;
+mod native_menu;
 mod persistence;
 mod read_model;
 
@@ -28,6 +29,7 @@ pub fn run() {
             demo_seed::apply(&mut repository)
                 .map_err(|error| io::Error::other(error.to_string()))?;
             app.manage(PatientStore::new(repository));
+            native_menu::install(app)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

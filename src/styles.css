@@ -4,6 +4,7 @@ body { margin: 0; min-width: 1180px; min-height: 100vh; font-size: 12px; }
 button, select { font: inherit; color: inherit; }
 button { cursor: pointer; background: white; border: 1px solid var(--border); border-radius: 6px; }
 .app-shell { min-height: 100vh; display: grid; grid-template-columns: 190px 1fr; }
+.app-shell.sidebar-hidden { grid-template-columns:1fr; }
 .sidebar { position: sticky; top: 0; height: 100vh; background: #fff; border-right: 1px solid var(--border); padding: 18px 12px; display: flex; flex-direction: column; }
 .brand { display: flex; align-items: center; gap: 8px; padding: 3px 7px 20px; font-size: 21px; font-weight: 750; }.brand svg { color: var(--blue); width: 28px; height: 28px; }
 .sidebar nav { display: grid; gap: 4px; }.nav-item { border: 0; display: flex; align-items: center; gap: 10px; padding: 11px; text-align: left; }.nav-item.active { color: #0759d9; background: #e8f0ff; font-weight: 650; }
