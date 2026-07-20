@@ -111,6 +111,21 @@ pub struct ReferenceSource {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReferenceCatalogParameter {
+    pub catalog_id: String,
+    pub catalog_version: u32,
+    pub parameter_id: String,
+    pub display_name: String,
+    pub original_unit: String,
+    pub lower_bound_text: Option<String>,
+    pub upper_bound_text: Option<String>,
+    pub reference_rule_text: Option<String>,
+    pub context_notice: String,
+    pub display_order: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "value", rename_all = "camelCase")]
 pub enum PersistedValue {
     NumericText(String),

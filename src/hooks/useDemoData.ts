@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import * as patientApi from "../api/patients";
-import type { CommandFailure, ConfirmedReportValue, LaboratoryReport, PatientDetails, PatientListItem } from "../types";
+import type { CommandFailure, ConfirmedReportValue, LaboratoryReport, PatientDetails, PatientListItem, ReferenceCatalogParameter, ReferenceSource } from "../types";
 
 function errorMessage(error: unknown): string {
   if (typeof error === "object" && error !== null && "message" in error) {
@@ -22,6 +22,10 @@ export function useDemoData() {
   const [patientsError, setPatientsError] = useState<string | null>(null);
   const [patientDataError, setPatientDataError] = useState<string | null>(null);
   const [valuesError, setValuesError] = useState<string | null>(null);
+  const [referenceSources, setReferenceSources] = useState<ReferenceSource[]>([]);
+  const [selectedReferenceSourceId, setSelectedReferenceSourceId] = useState<string | null>(null);
+  const [referenceCatalogParameters, setReferenceCatalogParameters] = useState<ReferenceCatalogParameter[]>([]);
+  const [referenceSourcesError, setReferenceSourcesError] = useState<string | null>(null);
 
   const refreshPatients = useCallback(async () => {
     setIsLoadingPatients(true);
@@ -44,6 +48,30 @@ export function useDemoData() {
   useEffect(() => {
     void refreshPatients();
   }, [refreshPatients]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const sources = await patientApi.listReferenceSources();
+        setReferenceSources(sources);
+        setSelectedReferenceSourceId(sources.find(source => source.isDefault)?.id ?? null);
+      } catch (error) {
+        setReferenceSourcesError(errorMessage(error));
+      }
+    };
+    void load();
+  }, []);
+
+  useEffect(() => {
+    const source = referenceSources.find(candidate => candidate.id === selectedReferenceSourceId);
+    setReferenceCatalogParameters([]);
+    if (!source || source.availability !== "active" || source.kind === "report") return;
+    let isCurrent = true;
+    void patientApi.listReferenceCatalogParameters(source.id, source.version)
+      .then(parameters => { if (isCurrent) setReferenceCatalogParameters(parameters); })
+      .catch(error => { if (isCurrent) setReferenceSourcesError(errorMessage(error)); });
+    return () => { isCurrent = false; };
+  }, [referenceSources, selectedReferenceSourceId]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -116,6 +144,10 @@ export function useDemoData() {
     () => reports.find(report => report.id === selectedReportId) ?? null,
     [reports, selectedReportId]
   );
+  const selectedReferenceSource = useMemo(
+    () => referenceSources.find(source => source.id === selectedReferenceSourceId) ?? null,
+    [referenceSources, selectedReferenceSourceId]
+  );
 
   return {
     patients,
@@ -132,8 +164,13 @@ export function useDemoData() {
     patientsError,
     patientDataError,
     valuesError,
+    referenceSources,
+    selectedReferenceSource,
+    referenceCatalogParameters,
+    referenceSourcesError,
     refreshPatients,
     selectPatient: setSelectedPatientId,
-    selectReport: setSelectedReportId
+    selectReport: setSelectedReportId,
+    selectReferenceSource: setSelectedReferenceSourceId
   };
 }

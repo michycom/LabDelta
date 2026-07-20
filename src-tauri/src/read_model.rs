@@ -5,8 +5,8 @@ use crate::domain::{
     ConfirmationStatus, ConfirmedReportValue, ExtractionVersionId, IdentifierError,
     LaboratoryReportSummary, OriginalDocumentId, OriginalDocumentReference, OriginalValueId,
     OriginalValueReference, PatientDetails, PatientId, PatientSummary, PersistedValue,
-    ProvenanceLocationId, ProvenanceLocator, ProvenanceReference, ReferenceSource,
-    ReferenceSourceAvailability, ReferenceSourceKind, ReportId, WorkingValueId,
+    ProvenanceLocationId, ProvenanceLocator, ProvenanceReference, ReferenceCatalogParameter,
+    ReferenceSource, ReferenceSourceAvailability, ReferenceSourceKind, ReportId, WorkingValueId,
 };
 
 pub(crate) fn list_reference_sources(
@@ -73,6 +73,67 @@ fn invalid_reference_source(id: &str, field: &str, value: &str) -> ReadError {
         id: id.to_owned(),
         reason: format!("unsupported {field} '{value}'"),
     }
+}
+
+pub(crate) fn reference_catalog_parameters(
+    connection: &Connection,
+    reference_source_id: &str,
+    reference_source_version: u32,
+) -> Result<Vec<ReferenceCatalogParameter>, ReadError> {
+    let source_exists = connection
+        .query_row(
+            "SELECT 1 FROM reference_sources WHERE id = ?1 AND version = ?2",
+            rusqlite::params![reference_source_id, reference_source_version],
+            |_| Ok(()),
+        )
+        .optional()
+        .map_err(persistence_error)?
+        .is_some();
+    if !source_exists {
+        return Err(ReadError::NotFound {
+            entity: "reference source",
+            id: format!("{reference_source_id}@{reference_source_version}"),
+        });
+    }
+    let mut statement = connection
+        .prepare(
+            "SELECT parameter.catalog_id, parameter.catalog_version,
+                    parameter.parameter_id, parameter.display_name,
+                    parameter.original_unit, parameter.lower_bound_text,
+                    parameter.upper_bound_text, parameter.reference_rule_text,
+                    parameter.context_notice, parameter.display_order
+             FROM reference_catalog_parameters AS parameter
+             JOIN reference_catalogs AS catalog
+               ON catalog.id = parameter.catalog_id
+              AND catalog.version = parameter.catalog_version
+             WHERE catalog.reference_source_id = ?1
+               AND catalog.reference_source_version = ?2
+               AND catalog.status = 'active'
+             ORDER BY parameter.display_order, parameter.parameter_id",
+        )
+        .map_err(persistence_error)?;
+    let parameters = statement
+        .query_map(
+            rusqlite::params![reference_source_id, reference_source_version],
+            |row| {
+                Ok(ReferenceCatalogParameter {
+                    catalog_id: row.get(0)?,
+                    catalog_version: row.get(1)?,
+                    parameter_id: row.get(2)?,
+                    display_name: row.get(3)?,
+                    original_unit: row.get(4)?,
+                    lower_bound_text: row.get(5)?,
+                    upper_bound_text: row.get(6)?,
+                    reference_rule_text: row.get(7)?,
+                    context_notice: row.get(8)?,
+                    display_order: row.get(9)?,
+                })
+            },
+        )
+        .map_err(persistence_error)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(persistence_error)?;
+    Ok(parameters)
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]

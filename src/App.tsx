@@ -25,7 +25,15 @@ function LabDeltaApplication() {
   const [activeSection, setActiveSection] = useState<AppSection>("dashboard");
   const demoData = useDemoData();
   return <Shell activeSection={activeSection} onNavigate={setActiveSection}>
-    <Header patient={demoData.selectedPatient} onOpenPatients={() => setActiveSection("patients")} />
+    <Header
+      patient={demoData.selectedPatient}
+      referenceSources={demoData.referenceSources}
+      selectedReferenceSource={demoData.selectedReferenceSource}
+      referenceCatalogParameters={demoData.referenceCatalogParameters}
+      referenceSourcesError={demoData.referenceSourcesError}
+      onOpenPatients={() => setActiveSection("patients")}
+      onSelectReferenceSource={demoData.selectReferenceSource}
+    />
     {activeSection === "dashboard" ? <DemoDataWorkspace
       patients={demoData.patients}
       selectedPatient={demoData.selectedPatient}

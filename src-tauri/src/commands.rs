@@ -5,7 +5,7 @@ use tauri::State;
 
 use crate::domain::{
     ConfirmedReportValue, LaboratoryReportSummary, PatientDetails, PatientId, PatientSummary,
-    ReferenceSource, ReportId,
+    ReferenceCatalogParameter, ReferenceSource, ReportId,
 };
 use crate::persistence::PatientRepository;
 use crate::read_model::{self, ReadError};
@@ -69,6 +69,27 @@ pub fn list_reference_sources(
 ) -> Result<Vec<ReferenceSource>, CommandError> {
     let repository = store.repository()?;
     read_model::list_reference_sources(repository.connection()).map_err(Into::into)
+}
+
+#[tauri::command]
+pub fn list_reference_catalog_parameters(
+    reference_source_id: String,
+    reference_source_version: u32,
+    store: State<'_, PatientStore>,
+) -> Result<Vec<ReferenceCatalogParameter>, CommandError> {
+    if reference_source_id.trim().is_empty() || reference_source_version == 0 {
+        return Err(CommandError {
+            code: CommandErrorCode::InvalidInput,
+            message: "Reference source ID and positive version are required".to_owned(),
+        });
+    }
+    let repository = store.repository()?;
+    read_model::reference_catalog_parameters(
+        repository.connection(),
+        &reference_source_id,
+        reference_source_version,
+    )
+    .map_err(Into::into)
 }
 
 #[tauri::command]

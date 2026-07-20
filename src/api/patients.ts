@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ConfirmedReportValue, LaboratoryReport, PatientDetails, PatientListItem } from "../types";
+import type { ConfirmedReportValue, LaboratoryReport, PatientDetails, PatientListItem, ReferenceCatalogParameter, ReferenceSource } from "../types";
 
 export function listPatients(): Promise<PatientListItem[]> {
   return invoke<PatientListItem[]>("list_patients");
@@ -15,4 +15,12 @@ export function listLaboratoryReports(patientId: string): Promise<LaboratoryRepo
 
 export function listConfirmedReportValues(reportId: string): Promise<ConfirmedReportValue[]> {
   return invoke<ConfirmedReportValue[]>("list_confirmed_report_values", { reportId });
+}
+
+export function listReferenceSources(): Promise<ReferenceSource[]> {
+  return invoke<ReferenceSource[]>("list_reference_sources");
+}
+
+export function listReferenceCatalogParameters(referenceSourceId: string, referenceSourceVersion: number): Promise<ReferenceCatalogParameter[]> {
+  return invoke<ReferenceCatalogParameter[]>("list_reference_catalog_parameters", { referenceSourceId, referenceSourceVersion });
 }

@@ -119,6 +119,31 @@ export interface ConfirmedReportValue {
   };
 }
 
+export interface ReferenceSource {
+  id: string;
+  version: number;
+  kind: "report" | "demoCatalog" | "ifcc" | "dgkl" | "localLaboratory";
+  displayName: string;
+  description: string;
+  availability: "active" | "futureDisabled";
+  isDefault: boolean;
+  demonstrationOnly: boolean;
+  sourceNotice: string;
+}
+
+export interface ReferenceCatalogParameter {
+  catalogId: string;
+  catalogVersion: number;
+  parameterId: string;
+  displayName: string;
+  originalUnit: string;
+  lowerBoundText: string | null;
+  upperBoundText: string | null;
+  referenceRuleText: string | null;
+  contextNotice: string;
+  displayOrder: number;
+}
+
 export interface CommandFailure {
   code: "invalidInput" | "notFound" | "invalidStoredData" | "persistence" | "persistenceUnavailable";
   message: string;

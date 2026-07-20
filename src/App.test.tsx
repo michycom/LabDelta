@@ -3,13 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as patientApi from "./api/patients";
 import App from "./App";
 import { DEMO_ACKNOWLEDGEMENT_KEY } from "./state/demoAcknowledgement";
-import type { ConfirmedReportValue, LaboratoryReport, PatientDetails, PatientListItem } from "./types";
+import type { ConfirmedReportValue, LaboratoryReport, PatientDetails, PatientListItem, ReferenceCatalogParameter, ReferenceSource } from "./types";
 
 vi.mock("./api/patients", () => ({
   listPatients: vi.fn(),
   getPatientDetails: vi.fn(),
   listLaboratoryReports: vi.fn(),
-  listConfirmedReportValues: vi.fn()
+  listConfirmedReportValues: vi.fn(),
+  listReferenceSources: vi.fn(),
+  listReferenceCatalogParameters: vi.fn()
 }));
 
 const patient: PatientListItem = {
@@ -69,6 +71,21 @@ const confirmedValue: ConfirmedReportValue = {
   }
 };
 
+const referenceSources: ReferenceSource[] = [
+  { id: "report-reference", version: 1, kind: "report", displayName: "Report Reference", description: "Original report", availability: "active", isDefault: true, demonstrationOnly: false, sourceNotice: "Default source. Original report reference information remains authoritative for the demonstration." },
+  { id: "demo-reference-catalog", version: 1, kind: "demoCatalog", displayName: "Demo Reference Catalog v1", description: "Synthetic demo", availability: "active", isDefault: false, demonstrationOnly: true, sourceNotice: "Demonstration catalog only." },
+  { id: "ifcc-reference", version: 1, kind: "ifcc", displayName: "IFCC", description: "Future", availability: "futureDisabled", isDefault: false, demonstrationOnly: false, sourceNotice: "Future catalog placeholder." },
+  { id: "dgkl-reference", version: 1, kind: "dgkl", displayName: "DGKL", description: "Future", availability: "futureDisabled", isDefault: false, demonstrationOnly: false, sourceNotice: "Future catalog placeholder." },
+  { id: "local-laboratory-reference", version: 1, kind: "localLaboratory", displayName: "Local Laboratory", description: "Future", availability: "futureDisabled", isDefault: false, demonstrationOnly: false, sourceNotice: "Future catalog placeholder." }
+];
+
+const demoCatalogParameters: ReferenceCatalogParameter[] = Array.from({ length: 9 }, (_, index) => ({
+  catalogId: "demo-reference-catalog", catalogVersion: 1, parameterId: `demo-marker-${index + 1}`,
+  displayName: `Demo-Marker ${index + 1}`, originalUnit: `demo-unit-${index + 1}`,
+  lowerBoundText: "1", upperBoundText: "2", referenceRuleText: null,
+  contextNotice: "Synthetic demonstration interval; no medical meaning.", displayOrder: index + 1
+}));
+
 afterEach(cleanup);
 
 beforeEach(() => {
@@ -78,6 +95,8 @@ beforeEach(() => {
   vi.mocked(patientApi.getPatientDetails).mockResolvedValue(details);
   vi.mocked(patientApi.listLaboratoryReports).mockResolvedValue([report]);
   vi.mocked(patientApi.listConfirmedReportValues).mockResolvedValue([confirmedValue]);
+  vi.mocked(patientApi.listReferenceSources).mockResolvedValue(referenceSources);
+  vi.mocked(patientApi.listReferenceCatalogParameters).mockResolvedValue(demoCatalogParameters);
 });
 
 describe("persisted synthetic demo flow", () => {
@@ -96,6 +115,19 @@ describe("persisted synthetic demo flow", () => {
     expect(patientApi.getPatientDetails).toHaveBeenCalledWith(patient.id);
     expect(patientApi.listLaboratoryReports).toHaveBeenCalledWith(patient.id);
     expect(patientApi.listConfirmedReportValues).toHaveBeenCalledWith(report.id);
+  });
+
+  it("keeps report reference default and exposes only the demo catalog as another active choice", async () => {
+    render(<App />);
+
+    const selector = await screen.findByLabelText("Reference source");
+    expect(selector).toHaveValue("report-reference");
+    expect(screen.getByRole("option", { name: "IFCC (future - disabled)" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "DGKL (future - disabled)" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "Local Laboratory (future - disabled)" })).toBeDisabled();
+    fireEvent.change(selector, { target: { value: "demo-reference-catalog" } });
+    expect(await screen.findByText(/9 synthetic parameters available; not applied automatically/)).toBeInTheDocument();
+    expect(patientApi.listReferenceCatalogParameters).toHaveBeenCalledWith("demo-reference-catalog", 1);
   });
 
   it("shows the patient loading state explicitly", () => {
