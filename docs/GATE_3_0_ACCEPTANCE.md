@@ -51,6 +51,11 @@ real-data path was added.
 - All medically curated catalog tables are empty by default. No placeholder
   parameter mapping, profile membership, conversion factor, threshold, or
   medical rule is seeded.
+- The reference-source extension is documented in `REFERENCE_CATALOGS.md`.
+  Report Reference remains the default; the separate nine-parameter Demo
+  Reference Catalog v1 is explicitly synthetic and demonstration-only. IFCC,
+  DGKL, and Local Laboratory are visible future-disabled source records without
+  catalog content.
 
 ## Reproducible validation
 
@@ -74,7 +79,7 @@ git diff --check
 The PDF is additionally checked by extracting its selectable text and by
 rendering every page to PNG for visual inspection.
 
-Validated on 2026-07-20: all commands above pass (27 Rust tests and 8 frontend
+Validated on 2026-07-20: all commands above pass (28 Rust tests and 9 frontend
 tests), and the macOS `LabDelta.app` bundle is produced. The optional DMG wrapper
 script fails in the managed build environment after the application bundle is
 already complete, so the contest gate uses the directly testable `.app` bundle.
