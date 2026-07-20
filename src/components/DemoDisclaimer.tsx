@@ -1,7 +1,7 @@
 import { FlaskConical, ShieldAlert } from "lucide-react";
 
 export function DemoBanner() {
-  return <div className="demo-banner" role="status">
+  return <div className="demo-banner" data-demo-target="demo-banner" role="status">
     <FlaskConical aria-hidden="true" size={17} />
     <strong>Demo – ausschließlich synthetische Testdaten</strong>
   </div>;

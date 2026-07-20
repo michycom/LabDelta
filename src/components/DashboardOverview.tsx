@@ -15,7 +15,7 @@ function message(error: unknown) {
   return typeof error === "object" && error !== null && "message" in error ? String(error.message) : String(error);
 }
 
-export function DashboardOverview({ onOpenPatient }: { onOpenPatient: (patientId: string) => void }) {
+export function DashboardOverview({ onOpenPatient, revealValueDetailForPatient }: { onOpenPatient: (patientId: string) => void; revealValueDetailForPatient?: string | null }) {
   const [filter, setFilter] = useState<DashboardFilter>("all");
   const [dashboard, setDashboard] = useState<DashboardView | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,16 +37,22 @@ export function DashboardOverview({ onOpenPatient }: { onOpenPatient: (patientId
     return () => { current = false; };
   }, [filter, reload]);
 
+  useEffect(() => {
+    if (!revealValueDetailForPatient || !dashboard) return;
+    const detail = dashboard.patients.find(patient => patient.displayName === revealValueDetailForPatient)?.highlights[0];
+    if (detail) setSelectedValue(detail);
+  }, [dashboard, revealValueDetailForPatient]);
+
   if (isLoading) return <DashboardState text="Loading approved dashboard data from local SQLite…" />;
   if (error) return <DashboardState error text={error} action={() => setReload(value => value + 1)} />;
 
-  return <section className="contest-dashboard">
+  return <section className="contest-dashboard" data-demo-target="dashboard">
     <div className="dashboard-heading">
       <div><span className="section-kicker"><Database size={15} /> Contest dashboard</span><h1>Approved synthetic patients</h1><p>Report Reference is used for every status shown here.</p></div>
       <div className="dashboard-filters" aria-label="Dashboard filters">{filters.map(([id, label]) => <button aria-pressed={filter === id} className={filter === id ? "selected" : ""} key={id} onClick={() => setFilter(id)} type="button">{label}</button>)}</div>
     </div>
     <p className="sort-note"><strong>Deterministic order:</strong> {dashboard?.sortExplanation}</p>
-    {!dashboard?.patients.length ? <DashboardState compact text="No approved demo patients match this filter." /> : <div className="dashboard-patient-grid">{dashboard.patients.map(patient => <article className="dashboard-patient-card" key={patient.id}>
+    {!dashboard?.patients.length ? <DashboardState compact text="No approved demo patients match this filter." /> : <div className="dashboard-patient-grid">{dashboard.patients.map(patient => <article className="dashboard-patient-card" data-demo-target={patient.displayName === "Dirk Mayer" ? "patient-dirk-mayer" : undefined} key={patient.id}>
       <button className="patient-card-heading" onClick={() => onOpenPatient(patient.id)} type="button"><span><strong>{patient.displayName}</strong><small>Latest report {patient.latestReportDate}</small></span><ArrowRight size={18} /></button>
       <div className="patient-metrics"><span><b>{patient.reportCount}</b> reports</span><span><b>{patient.confirmedValueCount}</b> confirmed values</span></div>
       <div className="status-counts" aria-label={`${patient.displayName} reference status counts`}>
@@ -70,4 +76,4 @@ function Direction({ value }: { value: DashboardValueDetail["direction"] }) {
   return <>{mathematicalChangeLabel(value)}</>;
 }
 function DashboardState({ text, error = false, compact = false, action }: { text: string; error?: boolean; compact?: boolean; action?: () => void }) { return <div className={`demo-state ${error ? "error-state" : ""} ${compact ? "compact" : ""}`} role={error ? "alert" : undefined}><strong>{text}</strong>{action ? <button className="outline-button" onClick={action} type="button"><RefreshCw size={14} />Retry</button> : null}</div>; }
-function ValueDetail({ value, onClose }: { value: DashboardValueDetail; onClose: () => void }) { return <div className="dashboard-detail-backdrop" role="presentation"><aside aria-label={`${value.parameterName} mathematical detail`} className="dashboard-value-detail"><button aria-label="Close detail" className="detail-close" onClick={onClose} type="button"><X size={17} /></button><span className="section-kicker">Compact data explanation</span><h2>{value.parameterName}</h2><dl><dt>Current</dt><dd>{value.currentValue} {value.unit}</dd><dt>Previous</dt><dd>{value.previousValue ?? "Not available"} {value.previousValue ? value.unit : ""}</dd><dt>Supplied reference</dt><dd>{value.suppliedReference ?? referenceStatusLabel("notAssessable")}</dd><dt>Reference status</dt><dd><StatusDot status={value.referenceStatus} />{referenceStatusLabel(value.referenceStatus)}</dd><dt>Difference</dt><dd>{value.absoluteDifference ?? mathematicalChangeLabel("noComparison")}{value.relativeDifferencePercent ? ` (${value.relativeDifferencePercent}%)` : ""} · <Direction value={value.direction} /></dd><dt>Report dates</dt><dd>{value.currentReportDate}{value.previousReportDate ? `; previous ${value.previousReportDate}` : ""}</dd><dt>Profiles</dt><dd>{value.profileTags.join(", ") || "No assigned profile"}</dd><dt>Original label</dt><dd>{value.originalParameterName}</dd><dt>Source</dt><dd>{value.originalDocumentName} · {value.provenanceLabel}</dd><dt>Excerpt</dt><dd>{value.provenanceExcerpt ?? "No excerpt stored"}</dd><dt>Rules</dt><dd><code>{value.referenceRuleId}@{value.referenceRuleVersion}</code><br /><code>{value.comparisonRuleId}@{value.comparisonRuleVersion}</code></dd></dl></aside></div>; }
+function ValueDetail({ value, onClose }: { value: DashboardValueDetail; onClose: () => void }) { return <div className="dashboard-detail-backdrop" role="presentation"><aside aria-label={`${value.parameterName} mathematical detail`} className="dashboard-value-detail" data-demo-target="value-explanation"><button aria-label="Close detail" className="detail-close" onClick={onClose} type="button"><X size={17} /></button><span className="section-kicker">Compact data explanation</span><h2>{value.parameterName}</h2><dl><dt>Current</dt><dd>{value.currentValue} {value.unit}</dd><dt>Previous</dt><dd>{value.previousValue ?? "Not available"} {value.previousValue ? value.unit : ""}</dd><dt>Supplied reference</dt><dd>{value.suppliedReference ?? referenceStatusLabel("notAssessable")}</dd><dt>Reference status</dt><dd><StatusDot status={value.referenceStatus} />{referenceStatusLabel(value.referenceStatus)}</dd><dt>Difference</dt><dd>{value.absoluteDifference ?? mathematicalChangeLabel("noComparison")}{value.relativeDifferencePercent ? ` (${value.relativeDifferencePercent}%)` : ""} · <Direction value={value.direction} /></dd><dt>Report dates</dt><dd>{value.currentReportDate}{value.previousReportDate ? `; previous ${value.previousReportDate}` : ""}</dd><dt>Profiles</dt><dd>{value.profileTags.join(", ") || "No assigned profile"}</dd><dt>Original label</dt><dd>{value.originalParameterName}</dd><dt>Source</dt><dd>{value.originalDocumentName} · {value.provenanceLabel}</dd><dt>Excerpt</dt><dd>{value.provenanceExcerpt ?? "No excerpt stored"}</dd><dt>Rules</dt><dd><code>{value.referenceRuleId}@{value.referenceRuleVersion}</code><br /><code>{value.comparisonRuleId}@{value.comparisonRuleVersion}</code></dd></dl></aside></div>; }

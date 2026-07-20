@@ -3,10 +3,12 @@ import { sectionForMenuAction, subscribeNativeMenu } from "./api/nativeMenu";
 import { DemoDataWorkspace } from "./components/DemoDataWorkspace";
 import { DashboardOverview } from "./components/DashboardOverview";
 import { DemoDisclaimer } from "./components/DemoDisclaimer";
+import { DemoWalkthroughControls } from "./components/DemoWalkthroughControls";
 import { Header } from "./components/Header";
 import { PatientManagement } from "./components/PatientManagement";
 import { Shell } from "./components/Shell";
 import { useDemoData } from "./hooks/useDemoData";
+import { useDemoWalkthrough } from "./demo/useDemoWalkthrough";
 import { hasAcknowledgedDemoDisclaimer, storeDemoDisclaimerAcknowledgement } from "./state/demoAcknowledgement";
 import type { AppSection } from "./types";
 
@@ -37,6 +39,19 @@ function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; seq
   const [activeSection, setActiveSection] = useState<AppSection>("dashboard");
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const demoData = useDemoData();
+  const walkthrough = useDemoWalkthrough();
+  const demoPatients = demoData.patients;
+  const selectedDemoPatientId = demoData.selectedPatientId;
+  const selectDemoPatient = demoData.selectPatient;
+
+  useEffect(() => {
+    if (walkthrough.state.playback !== "playing" && walkthrough.state.playback !== "paused") return;
+    setActiveSection(walkthrough.step.section);
+    if (walkthrough.step.patientName) {
+      const patient = demoPatients.find(candidate => candidate.displayName === walkthrough.step.patientName);
+      if (patient && patient.id !== selectedDemoPatientId) selectDemoPatient(patient.id);
+    }
+  }, [demoPatients, selectDemoPatient, selectedDemoPatientId, walkthrough.state.playback, walkthrough.step]);
 
   useEffect(() => {
     if (!nativeAction) return;
@@ -47,6 +62,12 @@ function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; seq
       setActiveSection("dashboard");
     }
     if (nativeAction.id === "toggle-sidebar") setSidebarVisible(visible => !visible);
+    if (nativeAction.id === "demo-play") walkthrough.play();
+    if (nativeAction.id === "demo-pause") walkthrough.pause();
+    if (nativeAction.id === "demo-stop") walkthrough.stop();
+    if (nativeAction.id === "demo-restart") walkthrough.restart();
+    if (nativeAction.id === "language-english") walkthrough.setLanguage("en");
+    if (nativeAction.id === "language-german") walkthrough.setLanguage("de");
     if (nativeAction.id === "next-patient" || nativeAction.id === "previous-patient") {
       const current = demoData.patients.findIndex(patient => patient.id === demoData.selectedPatientId);
       const offset = nativeAction.id === "next-patient" ? 1 : -1;
@@ -73,7 +94,7 @@ function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; seq
       onOpenPatients={() => setActiveSection("patients")}
       onSelectReferenceSource={demoData.selectReferenceSource}
     />
-    {activeSection === "dashboard" ? <DashboardOverview onOpenPatient={patientId => {
+    {activeSection === "dashboard" ? <DashboardOverview revealValueDetailForPatient={walkthrough.step.revealValueDetail && (walkthrough.state.playback === "playing" || walkthrough.state.playback === "paused") ? walkthrough.step.patientName ?? null : null} onOpenPatient={patientId => {
       demoData.selectPatient(patientId);
       setActiveSection("reports");
     }} /> : activeSection === "reports" ? <DemoDataWorkspace
@@ -104,11 +125,23 @@ function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; seq
       }}
     /> : <InformationView section={activeSection} />}
     <footer><strong>Research and demonstration project.</strong> Not clinically validated and not released for medical use. No diagnosis, prognosis, treatment, test, or therapy recommendation. Synthetic source documents remain authoritative for this demonstration.</footer>
+    <DemoWalkthroughControls
+      language={walkthrough.state.language}
+      onLanguage={walkthrough.setLanguage}
+      onPause={walkthrough.pause}
+      onPlay={walkthrough.play}
+      onRestart={walkthrough.restart}
+      onStop={walkthrough.stop}
+      playback={walkthrough.state.playback}
+      step={walkthrough.step}
+      stepCount={walkthrough.stepCount}
+      stepIndex={walkthrough.state.stepIndex}
+    />
   </Shell>;
 }
 
 function InformationView({ section }: { section: Exclude<AppSection, "dashboard" | "patients" | "reports"> }) {
-  if (section === "import") return <section className="information-view"><span className="section-kicker">Contest Demo limitation</span><h1>Import</h1><p>Manual import is disabled in the Contest Demo. LabDelta uses only approved synthetic fixtures.</p><p>No file dialog, drag-and-drop, parser, or write operation is available.</p></section>;
+  if (section === "import") return <section className="information-view" data-demo-target="import-boundary"><span className="section-kicker">Contest Demo limitation</span><h1>Import</h1><p>Manual import is disabled in the Contest Demo. LabDelta uses only approved synthetic fixtures.</p><p>No file dialog, drag-and-drop, parser, or write operation is available.</p></section>;
   if (section === "about") return <section className="information-view"><span className="section-kicker">LabDelta Contest Demo</span><h1>About LabDelta</h1><p>Local-first research and demonstration software using only approved synthetic fixtures.</p></section>;
   if (section === "limitations") return <section className="information-view"><span className="section-kicker">Demo Data and Limitations</span><h1>Contest Demo limitations</h1><p>No clinical validation, medical interpretation, diagnosis, therapy, general import, cloud, telemetry, or runtime AI.</p></section>;
   if (section === "documentation") return <section className="information-view"><span className="section-kicker">Local documentation</span><h1>Project Documentation</h1><p>The binding project, acceptance, reference catalog, and fixture documentation is stored locally in the docs directory.</p></section>;

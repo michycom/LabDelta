@@ -234,4 +234,22 @@ describe("persisted synthetic demo flow", () => {
     expect(document.querySelector('input[type="file"]')).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /choose file|select file/i })).not.toBeInTheDocument();
   });
+
+  it("controls the real walkthrough with subtitles and language selection", async () => {
+    render(<App />);
+    await screen.findByRole("heading", { name: "Approved synthetic patients" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Play demo" }));
+    expect(screen.getByText(/Welcome to LabDelta/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Pause demo" }));
+    expect(screen.getByText("Paused")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "DE" }));
+    expect(screen.getByText(/Willkommen bei LabDelta/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop demo" }));
+    expect(screen.queryByText(/Willkommen bei LabDelta/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Restart demo" }));
+    expect(screen.getByText(/Willkommen bei LabDelta/)).toBeInTheDocument();
+  });
 });
