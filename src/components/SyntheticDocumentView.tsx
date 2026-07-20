@@ -1,11 +1,7 @@
 import { ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { buildSyntheticDocumentPages } from "../data/syntheticDocument";
+import { buildSyntheticDocumentPages, parameterAnchorKey } from "../data/syntheticDocument";
 import type { ConfirmedReportValue, LaboratoryReport, PatientDetails } from "../types";
-
-function parameterKey(value: string) {
-  return value.toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
 
 export function SyntheticDocumentView({ patient, report, values }: { patient: PatientDetails; report: LaboratoryReport; values: ConfirmedReportValue[] }) {
   const pages = useMemo(() => buildSyntheticDocumentPages(patient, report, values), [patient, report, values]);
@@ -23,7 +19,7 @@ export function SyntheticDocumentView({ patient, report, values }: { patient: Pa
       <article className="synthetic-document-page" data-demo-target="document-page">
         <header><div><span>SYNTHETIC CONTEST DEMO</span><h2>{page.laboratoryName}</h2><p>Laboratory report · approved synthetic fixture</p></div><div className="barcode" aria-hidden="true">{barcodeBars.map((bar, index) => <i key={`${bar}-${index}`} style={{ width: `${1 + Number.parseInt(bar, 16) % 3}px` }} />)}</div></header>
         <dl><div><dt>Patient</dt><dd>{page.patientName}</dd></div><div><dt>Date of birth</dt><dd>{page.dateOfBirth}</dd></div><div><dt>Report date</dt><dd>{page.reportDate}</dd></div><div><dt>Laboratory ID</dt><dd>{page.reportId}</dd></div></dl>
-        <table><thead><tr><th>Parameter</th><th>Result</th><th>Unit</th><th>Reference interval</th></tr></thead><tbody>{page.rows.map(row => <tr data-parameter-key={parameterKey(row.parameterName)} data-working-value-id={row.workingValueId} key={row.workingValueId}><td>{row.parameterName}</td><td>{row.result}</td><td>{row.unit}</td><td>{row.reference}</td></tr>)}</tbody></table>
+        <table><thead><tr><th>Parameter</th><th>Result</th><th>Unit</th><th>Reference interval</th></tr></thead><tbody>{page.rows.map(row => <tr data-parameter-key={parameterAnchorKey(row.parameterName)} data-working-value-id={row.workingValueId} key={row.workingValueId}><td>{row.parameterName}</td><td>{row.result}</td><td>{row.unit}</td><td>{row.reference}</td></tr>)}</tbody></table>
         <div className="document-signature"><span>Released in synthetic fixture</span><i /><small>Demonstration signature field</small></div>
         <footer><span>Source: {page.sourceDocument}</span><strong>Page {page.pageNumber} of {page.pageCount}</strong></footer>
       </article>

@@ -2,6 +2,10 @@ import type { ConfirmedReportValue, LaboratoryReport, PatientDetails, Provenance
 
 const rowsPerPage = 7;
 
+export function parameterAnchorKey(value: string) {
+  return value.toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 export interface SyntheticDocumentRow {
   workingValueId: string;
   parameterName: string;

@@ -142,6 +142,7 @@ describe("persisted synthetic demo flow", () => {
     for (const target of ["patient-detail", "comparison-table", "profile-overview", "parameter-history", "original-document", "document-page", "provenance-panel"]) {
       expect(document.querySelector(`[data-demo-target="${target}"]`)).toBeInTheDocument();
     }
+    expect(document.querySelectorAll('[data-parameter-key="leukocytes"]').length).toBeGreaterThanOrEqual(3);
   });
 
   it("keeps report reference default and exposes only the demo catalog as another active choice", async () => {

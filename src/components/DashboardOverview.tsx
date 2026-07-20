@@ -4,6 +4,7 @@ import { getDashboard } from "../api/patients";
 import { mathematicalChangeLabel, referenceStatusLabel } from "../terminology";
 import type { DashboardFilter, DashboardValueDetail, DashboardView, ReferenceStatus } from "../types";
 import { CollapsiblePanel } from "./CollapsiblePanel";
+import { parameterAnchorKey } from "../data/syntheticDocument";
 
 const filters: Array<[DashboardFilter, string]> = [
   ["all", "All"],
@@ -64,7 +65,7 @@ export function DashboardOverview({ onOpenPatient, revealValueDetailForPatient }
         <StatusCount status="notAssessable" value={patient.referenceCounts.notAssessable} />
       </div>
       <div className="dashboard-profiles"><h2>Static profiles</h2>{patient.profiles.map(profile => <div key={`${profile.id}-${profile.version}`}><strong>{profile.name} <small>v{profile.version}</small></strong><span>{profile.assignedParameterCount} assigned · {profile.presentParameterCount} present · {profile.outsideReferenceCount} outside</span></div>)}</div>
-      <div className="dashboard-highlights"><h2>Transparent mathematical highlights</h2>{patient.highlights.length ? patient.highlights.map(value => <button key={value.workingValueId} onClick={() => setSelectedValue(value)} type="button"><StatusDot status={value.referenceStatus} /><span><strong>{value.parameterName}</strong><small>{value.currentValue} {value.unit ?? ""} · {referenceStatusLabel(value.referenceStatus)} · <Direction value={value.direction} /> {value.absoluteDifference ?? "—"}</small></span><ArrowRight size={15} /></button>) : <p>No outside value or mathematical change in the latest report.</p>}</div>
+      <div className="dashboard-highlights"><h2>Transparent mathematical highlights</h2>{patient.highlights.length ? patient.highlights.map(value => <button data-parameter-key={parameterAnchorKey(value.originalParameterName)} key={value.workingValueId} onClick={() => setSelectedValue(value)} type="button"><StatusDot status={value.referenceStatus} /><span><strong>{value.parameterName}</strong><small>{value.currentValue} {value.unit ?? ""} · {referenceStatusLabel(value.referenceStatus)} · <Direction value={value.direction} /> {value.absoluteDifference ?? "—"}</small></span><ArrowRight size={15} /></button>) : <p>No outside value or mathematical change in the latest report.</p>}</div>
     </article>)}</div>}
     {selectedValue ? <ValueDetail value={selectedValue} onClose={() => setSelectedValue(null)} /> : null}
     </CollapsiblePanel>
