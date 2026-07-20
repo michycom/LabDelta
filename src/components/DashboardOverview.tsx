@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getDashboard } from "../api/patients";
 import { mathematicalChangeLabel, referenceStatusLabel } from "../terminology";
 import type { DashboardFilter, DashboardValueDetail, DashboardView, ReferenceStatus } from "../types";
+import { CollapsiblePanel } from "./CollapsiblePanel";
 
 const filters: Array<[DashboardFilter, string]> = [
   ["all", "All"],
@@ -47,12 +48,13 @@ export function DashboardOverview({ onOpenPatient, revealValueDetailForPatient }
   if (error) return <DashboardState error text={error} action={() => setReload(value => value + 1)} />;
 
   return <section className="contest-dashboard" data-demo-target="dashboard">
+    <CollapsiblePanel demoTarget="dashboard-overview" storageKey="dashboard" subtitle="Approved synthetic patients from local SQLite" title="Dashboard">
     <div className="dashboard-heading">
       <div><span className="section-kicker"><Database size={15} /> Contest dashboard</span><h1>Approved synthetic patients</h1><p>Report Reference is used for every status shown here.</p></div>
-      <div className="dashboard-filters" aria-label="Dashboard filters">{filters.map(([id, label]) => <button aria-pressed={filter === id} className={filter === id ? "selected" : ""} key={id} onClick={() => setFilter(id)} type="button">{label}</button>)}</div>
+      <div className="dashboard-filters" data-demo-target="dashboard-filters" aria-label="Dashboard filters">{filters.map(([id, label]) => <button aria-pressed={filter === id} className={filter === id ? "selected" : ""} key={id} onClick={() => setFilter(id)} type="button">{label}</button>)}</div>
     </div>
     <p className="sort-note"><strong>Deterministic order:</strong> {dashboard?.sortExplanation}</p>
-    {!dashboard?.patients.length ? <DashboardState compact text="No approved demo patients match this filter." /> : <div className="dashboard-patient-grid">{dashboard.patients.map(patient => <article className="dashboard-patient-card" data-demo-target={patient.displayName === "Dirk Mayer" ? "patient-dirk-mayer" : undefined} key={patient.id}>
+    {!dashboard?.patients.length ? <DashboardState compact text="No approved demo patients match this filter." /> : <div className="dashboard-patient-grid" data-demo-target="dashboard-patient-table">{dashboard.patients.map(patient => <article className="dashboard-patient-card" data-demo-target={patient.displayName === "Dirk Mayer" ? "patient-dirk-mayer" : undefined} key={patient.id}>
       <button className="patient-card-heading" onClick={() => onOpenPatient(patient.id)} type="button"><span><strong>{patient.displayName}</strong><small>Latest report {patient.latestReportDate}</small></span><ArrowRight size={18} /></button>
       <div className="patient-metrics"><span><b>{patient.reportCount}</b> reports</span><span><b>{patient.confirmedValueCount}</b> confirmed values</span></div>
       <div className="status-counts" aria-label={`${patient.displayName} reference status counts`}>
@@ -65,6 +67,7 @@ export function DashboardOverview({ onOpenPatient, revealValueDetailForPatient }
       <div className="dashboard-highlights"><h2>Transparent mathematical highlights</h2>{patient.highlights.length ? patient.highlights.map(value => <button key={value.workingValueId} onClick={() => setSelectedValue(value)} type="button"><StatusDot status={value.referenceStatus} /><span><strong>{value.parameterName}</strong><small>{value.currentValue} {value.unit ?? ""} · {referenceStatusLabel(value.referenceStatus)} · <Direction value={value.direction} /> {value.absoluteDifference ?? "—"}</small></span><ArrowRight size={15} /></button>) : <p>No outside value or mathematical change in the latest report.</p>}</div>
     </article>)}</div>}
     {selectedValue ? <ValueDetail value={selectedValue} onClose={() => setSelectedValue(null)} /> : null}
+    </CollapsiblePanel>
   </section>;
 }
 
