@@ -4,8 +4,9 @@ Status: **implemented for the read-only contest demonstration**
 
 This note records the smallest working Gate 3.0 slice used by the contest
 demo. `PROJECT_FOUNDATION.md` remains authoritative. No analysis, medical
-classification, prioritization, import workflow, chart, source viewer, or
-real-data path was added.
+interpretation, diagnostic prioritization, import workflow, chart, source
+viewer, or real-data path was added. The dashboard performs only documented
+reference-interval classification and exact arithmetic comparison.
 
 ## Gate 3.0A - persistence foundation
 
@@ -38,6 +39,13 @@ real-data path was added.
   validated before the seed runs.
 - The first-launch disclaimer and persistent synthetic-demo marker are covered
   by frontend tests.
+- The post-disclaimer start view is an SQLite-driven dashboard containing
+  exactly the three approved patients. Four deterministic filters, transparent
+  non-diagnostic sorting, versioned profile counts, and compact provenance
+  details are calculated in Rust and rendered as typed results in React.
+- A native Tauri menu exposes local navigation and information views. Import is
+  information-only; unavailable features and all next-sprint Demo controls are
+  visible but disabled.
 - Seed, future controlled fixture import, and any future real-data path remain
   separate. Gate 3.0 implements only the seed.
 
@@ -80,7 +88,5 @@ git diff --check
 The PDF is additionally checked by extracting its selectable text and by
 rendering every page to PNG for visual inspection.
 
-Validated on 2026-07-20: all commands above pass (29 Rust tests and 9 frontend
-tests), and the macOS `LabDelta.app` bundle is produced. The optional DMG wrapper
-script fails in the managed build environment after the application bundle is
-already complete, so the contest gate uses the directly testable `.app` bundle.
+Validated on 2026-07-20: all commands above pass (34 Rust tests and 13 frontend
+tests), and the macOS `LabDelta.app` bundle is produced.

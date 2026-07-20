@@ -8,8 +8,10 @@ It does not diagnose disease, estimate disease probability, recommend treatment,
 
 Status: Gate 3.0 contest foundation implemented. The desktop demo loads only
 checksum-approved synthetic fixtures into local SQLite and exposes confirmed
-values with their original source text and location. It deliberately performs
-no medical analysis, prioritization, charting, source import, or runtime AI.
+values with their original source text and location. It performs only
+deterministic report-interval classification and exact longitudinal arithmetic;
+it deliberately performs no medical interpretation, charting, source import,
+or runtime AI.
 
 ## Contest demo
 
@@ -18,17 +20,26 @@ npm install
 npm run tauri dev
 ```
 
-On first launch, acknowledge the synthetic-data notice. The dashboard then
-shows the deterministic synthetic patients Eva Mittel, Dirk Mayer, and Daniel
-Power, their reports, explicitly confirmed working values, transparent static
-profile assignments, source provenance, and a visible reference-source selector.
+On first launch, acknowledge the synthetic-data notice. The SQLite-driven
+dashboard then shows exactly the deterministic synthetic patients Eva Mittel,
+Dirk Mayer, and Daniel Power. Patient cards expose report and reference-status
+counts, exact longitudinal differences, transparent static profile assignments,
+and compact provenance details. Dashboard filters and sorting are deterministic
+and non-diagnostic. The existing report view remains available from each card
+and from the sidebar.
+
+Manual import is disabled; its view explains that the Contest Demo uses only
+approved synthetic fixtures. The native desktop menu provides local navigation
+and information actions. Its Demo controls are visible preparation for the next
+sprint but remain disabled and have no state machine.
+
 Report Reference remains the default; the optional Demo Reference Catalog v1
 is synthetic and is never applied automatically. `scripts/generate_demo_artifacts.py`
 recreates the canonical CSV and selectable-text PDF from the approved JSON
 fixtures; their hashes are recorded in
 `fixtures/demo_seed/v1/derived-artifacts.json`.
 
-See `docs/GATE_3_0_ACCEPTANCE.md` for the implemented scope and validation
-commands.
+See `docs/DASHBOARD_AND_NATIVE_MENU.md` for the visible workflow and
+`docs/GATE_3_0_ACCEPTANCE.md` for the implemented scope and validation commands.
 
 License model to be determined before the first public release.
