@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowRight, ArrowUp, Database, RefreshCw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getDashboard } from "../api/patients";
+import { mathematicalChangeLabel, referenceStatusLabel } from "../terminology";
 import type { DashboardFilter, DashboardValueDetail, DashboardView, ReferenceStatus } from "../types";
 
 const filters: Array<[DashboardFilter, string]> = [
@@ -9,13 +10,6 @@ const filters: Array<[DashboardFilter, string]> = [
   ["changed", "Changed"],
   ["longitudinalData", "Longitudinal data"]
 ];
-
-const statusLabels: Record<ReferenceStatus, string> = {
-  below: "below",
-  within: "within",
-  above: "above",
-  notAssessable: "not assessable"
-};
 
 function message(error: unknown) {
   return typeof error === "object" && error !== null && "message" in error ? String(error.message) : String(error);
@@ -62,18 +56,18 @@ export function DashboardOverview({ onOpenPatient }: { onOpenPatient: (patientId
         <StatusCount status="notAssessable" value={patient.referenceCounts.notAssessable} />
       </div>
       <div className="dashboard-profiles"><h2>Static profiles</h2>{patient.profiles.map(profile => <div key={`${profile.id}-${profile.version}`}><strong>{profile.name} <small>v{profile.version}</small></strong><span>{profile.assignedParameterCount} assigned · {profile.presentParameterCount} present · {profile.outsideReferenceCount} outside</span></div>)}</div>
-      <div className="dashboard-highlights"><h2>Transparent mathematical highlights</h2>{patient.highlights.length ? patient.highlights.map(value => <button key={value.workingValueId} onClick={() => setSelectedValue(value)} type="button"><StatusDot status={value.referenceStatus} /><span><strong>{value.parameterName}</strong><small>{value.currentValue} {value.unit ?? ""} · {statusLabels[value.referenceStatus]} · <Direction value={value.direction} /> {value.absoluteDifference ?? "—"}</small></span><ArrowRight size={15} /></button>) : <p>No outside value or mathematical change in the latest report.</p>}</div>
+      <div className="dashboard-highlights"><h2>Transparent mathematical highlights</h2>{patient.highlights.length ? patient.highlights.map(value => <button key={value.workingValueId} onClick={() => setSelectedValue(value)} type="button"><StatusDot status={value.referenceStatus} /><span><strong>{value.parameterName}</strong><small>{value.currentValue} {value.unit ?? ""} · {referenceStatusLabel(value.referenceStatus)} · <Direction value={value.direction} /> {value.absoluteDifference ?? "—"}</small></span><ArrowRight size={15} /></button>) : <p>No outside value or mathematical change in the latest report.</p>}</div>
     </article>)}</div>}
     {selectedValue ? <ValueDetail value={selectedValue} onClose={() => setSelectedValue(null)} /> : null}
   </section>;
 }
 
 function StatusDot({ status }: { status: ReferenceStatus }) { return <i aria-hidden="true" className={`reference-dot ${status}`} />; }
-function StatusCount({ status, value }: { status: ReferenceStatus; value: number }) { return <span><StatusDot status={status} /><b>{value}</b> {statusLabels[status]}</span>; }
+function StatusCount({ status, value }: { status: ReferenceStatus; value: number }) { return <span><StatusDot status={status} /><b>{value}</b> {referenceStatusLabel(status)}</span>; }
 function Direction({ value }: { value: DashboardValueDetail["direction"] }) {
-  if (value === "higher") return <><ArrowUp size={12} />higher</>;
-  if (value === "lower") return <><ArrowDown size={12} />lower</>;
-  return <>{value === "equal" ? "equal" : "no comparison"}</>;
+  if (value === "higher") return <><ArrowUp size={12} />{mathematicalChangeLabel(value)}</>;
+  if (value === "lower") return <><ArrowDown size={12} />{mathematicalChangeLabel(value)}</>;
+  return <>{mathematicalChangeLabel(value)}</>;
 }
 function DashboardState({ text, error = false, compact = false, action }: { text: string; error?: boolean; compact?: boolean; action?: () => void }) { return <div className={`demo-state ${error ? "error-state" : ""} ${compact ? "compact" : ""}`} role={error ? "alert" : undefined}><strong>{text}</strong>{action ? <button className="outline-button" onClick={action} type="button"><RefreshCw size={14} />Retry</button> : null}</div>; }
-function ValueDetail({ value, onClose }: { value: DashboardValueDetail; onClose: () => void }) { return <div className="dashboard-detail-backdrop" role="presentation"><aside aria-label={`${value.parameterName} mathematical detail`} className="dashboard-value-detail"><button aria-label="Close detail" className="detail-close" onClick={onClose} type="button"><X size={17} /></button><span className="section-kicker">Compact data explanation</span><h2>{value.parameterName}</h2><dl><dt>Current</dt><dd>{value.currentValue} {value.unit}</dd><dt>Previous</dt><dd>{value.previousValue ?? "Not available"} {value.previousValue ? value.unit : ""}</dd><dt>Supplied reference</dt><dd>{value.suppliedReference ?? "Not assessable"}</dd><dt>Reference status</dt><dd><StatusDot status={value.referenceStatus} />{statusLabels[value.referenceStatus]}</dd><dt>Difference</dt><dd>{value.absoluteDifference ?? "No comparison"}{value.relativeDifferencePercent ? ` (${value.relativeDifferencePercent}%)` : ""} · <Direction value={value.direction} /></dd><dt>Report dates</dt><dd>{value.currentReportDate}{value.previousReportDate ? `; previous ${value.previousReportDate}` : ""}</dd><dt>Profiles</dt><dd>{value.profileTags.join(", ") || "No assigned profile"}</dd><dt>Original label</dt><dd>{value.originalParameterName}</dd><dt>Source</dt><dd>{value.originalDocumentName} · {value.provenanceLabel}</dd><dt>Excerpt</dt><dd>{value.provenanceExcerpt ?? "No excerpt stored"}</dd><dt>Rules</dt><dd><code>{value.referenceRuleId}@{value.referenceRuleVersion}</code><br /><code>{value.comparisonRuleId}@{value.comparisonRuleVersion}</code></dd></dl></aside></div>; }
+function ValueDetail({ value, onClose }: { value: DashboardValueDetail; onClose: () => void }) { return <div className="dashboard-detail-backdrop" role="presentation"><aside aria-label={`${value.parameterName} mathematical detail`} className="dashboard-value-detail"><button aria-label="Close detail" className="detail-close" onClick={onClose} type="button"><X size={17} /></button><span className="section-kicker">Compact data explanation</span><h2>{value.parameterName}</h2><dl><dt>Current</dt><dd>{value.currentValue} {value.unit}</dd><dt>Previous</dt><dd>{value.previousValue ?? "Not available"} {value.previousValue ? value.unit : ""}</dd><dt>Supplied reference</dt><dd>{value.suppliedReference ?? referenceStatusLabel("notAssessable")}</dd><dt>Reference status</dt><dd><StatusDot status={value.referenceStatus} />{referenceStatusLabel(value.referenceStatus)}</dd><dt>Difference</dt><dd>{value.absoluteDifference ?? mathematicalChangeLabel("noComparison")}{value.relativeDifferencePercent ? ` (${value.relativeDifferencePercent}%)` : ""} · <Direction value={value.direction} /></dd><dt>Report dates</dt><dd>{value.currentReportDate}{value.previousReportDate ? `; previous ${value.previousReportDate}` : ""}</dd><dt>Profiles</dt><dd>{value.profileTags.join(", ") || "No assigned profile"}</dd><dt>Original label</dt><dd>{value.originalParameterName}</dd><dt>Source</dt><dd>{value.originalDocumentName} · {value.provenanceLabel}</dd><dt>Excerpt</dt><dd>{value.provenanceExcerpt ?? "No excerpt stored"}</dd><dt>Rules</dt><dd><code>{value.referenceRuleId}@{value.referenceRuleVersion}</code><br /><code>{value.comparisonRuleId}@{value.comparisonRuleVersion}</code></dd></dl></aside></div>; }
