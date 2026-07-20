@@ -3,6 +3,7 @@ use std::sync::{Mutex, MutexGuard};
 use serde::Serialize;
 use tauri::State;
 
+use crate::dashboard::{self, DashboardError, DashboardFilter, DashboardView};
 use crate::domain::{
     ConfirmedReportValue, LaboratoryReportSummary, PatientDetails, PatientId, PatientSummary,
     ReferenceCatalogParameter, ReferenceSource, ReportId,
@@ -55,6 +56,30 @@ impl From<ReadError> for CommandError {
             message: error.to_string(),
         }
     }
+}
+
+impl From<DashboardError> for CommandError {
+    fn from(error: DashboardError) -> Self {
+        let code = match error {
+            DashboardError::InvalidFilter(_) => CommandErrorCode::InvalidInput,
+            DashboardError::InvalidStoredData(_) => CommandErrorCode::InvalidStoredData,
+            DashboardError::Persistence(_) => CommandErrorCode::Persistence,
+        };
+        Self {
+            code,
+            message: error.to_string(),
+        }
+    }
+}
+
+#[tauri::command]
+pub fn get_dashboard(
+    filter: String,
+    store: State<'_, PatientStore>,
+) -> Result<DashboardView, CommandError> {
+    let filter = DashboardFilter::try_from(filter.as_str()).map_err(CommandError::from)?;
+    let repository = store.repository()?;
+    dashboard::load_dashboard(repository.connection(), filter).map_err(Into::into)
 }
 
 #[tauri::command]

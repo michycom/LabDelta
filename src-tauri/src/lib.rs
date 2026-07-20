@@ -1,4 +1,5 @@
 mod commands;
+mod dashboard;
 mod demo_fixtures;
 mod demo_seed;
 mod domain;
@@ -10,8 +11,8 @@ use std::fs;
 use std::io;
 
 use commands::{
-    get_patient_details, list_confirmed_report_values, list_laboratory_reports, list_patients,
-    list_reference_catalog_parameters, list_reference_sources, PatientStore,
+    get_dashboard, get_patient_details, list_confirmed_report_values, list_laboratory_reports,
+    list_patients, list_reference_catalog_parameters, list_reference_sources, PatientStore,
 };
 use persistence::PatientRepository;
 use tauri::Manager;
@@ -35,7 +36,8 @@ pub fn run() {
             list_reference_catalog_parameters,
             get_patient_details,
             list_laboratory_reports,
-            list_confirmed_report_values
+            list_confirmed_report_values,
+            get_dashboard
         ])
         .run(tauri::generate_context!())
         .expect("error while running LabDelta");
