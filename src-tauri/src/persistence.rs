@@ -702,8 +702,32 @@ mod tests {
         assert_eq!(row_count(repository.connection(), "reference_catalogs"), 1);
         assert_eq!(
             row_count(repository.connection(), "reference_catalog_parameters"),
-            0
+            9
         );
+        let catalog_identity = repository
+            .connection()
+            .query_row(
+                "SELECT catalog.display_name, catalog.version,
+                        catalog.demonstration_only, source.is_default
+                 FROM reference_catalogs AS catalog
+                 JOIN reference_sources AS source
+                   ON source.id = catalog.reference_source_id
+                  AND source.version = catalog.reference_source_version",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, u32>(1)?,
+                        row.get::<_, bool>(2)?,
+                        row.get::<_, bool>(3)?,
+                    ))
+                },
+            )
+            .expect("demo catalog identity");
+        assert_eq!(catalog_identity.0, "Demo Reference Catalog v1");
+        assert_eq!(catalog_identity.1, 1);
+        assert!(catalog_identity.2);
+        assert!(!catalog_identity.3);
         assert_no_foreign_key_violations(repository.connection());
     }
 
