@@ -32,12 +32,12 @@ pub(crate) const ENTRIES: &[MenuEntrySpec] = &[
     entry("view-import", "Import", true),
     entry("toggle-sidebar", "Toggle Sidebar", true),
     entry("enter-full-screen", "Enter Full Screen", true),
-    entry("demo-play", "Play Demo", false),
-    entry("demo-pause", "Pause Demo", false),
-    entry("demo-stop", "Stop Demo", false),
-    entry("demo-restart", "Restart Demo", false),
-    entry("language-english", "English", false),
-    entry("language-german", "Deutsch", false),
+    entry("demo-play", "Play Demo", true),
+    entry("demo-pause", "Pause Demo", true),
+    entry("demo-stop", "Stop Demo", true),
+    entry("demo-restart", "Restart Demo", true),
+    entry("language-english", "English", true),
+    entry("language-german", "Deutsch", true),
     entry("reset-demo-data", "Reset Demo Data", false),
     entry("help-limitations", "Demo Data and Limitations", true),
     entry("help-project-documentation", "Project Documentation", true),
@@ -157,17 +157,11 @@ mod tests {
     use super::ENTRIES;
 
     #[test]
-    fn unavailable_and_demo_state_actions_are_disabled() {
+    fn unavailable_actions_are_disabled() {
         for id in [
             "settings",
             "print",
             "show-original-source",
-            "demo-play",
-            "demo-pause",
-            "demo-stop",
-            "demo-restart",
-            "language-english",
-            "language-german",
             "reset-demo-data",
         ] {
             assert!(
@@ -177,6 +171,27 @@ mod tests {
                     .expect("entry")
                     .enabled,
                 "{id} must remain disabled"
+            );
+        }
+    }
+
+    #[test]
+    fn walkthrough_and_language_actions_are_enabled() {
+        for id in [
+            "demo-play",
+            "demo-pause",
+            "demo-stop",
+            "demo-restart",
+            "language-english",
+            "language-german",
+        ] {
+            assert!(
+                ENTRIES
+                    .iter()
+                    .find(|entry| entry.id == id)
+                    .expect("entry")
+                    .enabled,
+                "{id} must be available for the walkthrough"
             );
         }
     }
