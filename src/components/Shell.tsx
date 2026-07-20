@@ -1,11 +1,14 @@
-import { Activity, LayoutDashboard, Users } from "lucide-react";
+import { Activity, Database, FileInput, Files, LayoutDashboard, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import type { AppSection } from "../types";
 import { DemoBanner } from "./DemoDisclaimer";
 
 const navigation = [
-  ["Demo data", LayoutDashboard, "dashboard"],
-  ["Patients", Users, "patients"]
+  ["Dashboard", LayoutDashboard, "dashboard"],
+  ["Patients", Users, "patients"],
+  ["Reports", Files, "reports"],
+  ["Provenance", Database, "provenance"],
+  ["Import", FileInput, "import"]
 ] as const;
 
 export function Shell({ children, activeSection, onNavigate }: { children: ReactNode; activeSection: AppSection; onNavigate: (section: AppSection) => void }) {

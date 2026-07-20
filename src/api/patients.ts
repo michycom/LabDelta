@@ -1,5 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ConfirmedReportValue, LaboratoryReport, PatientDetails, PatientListItem, ReferenceCatalogParameter, ReferenceSource } from "../types";
+import type { ConfirmedReportValue, DashboardFilter, DashboardView, LaboratoryReport, PatientDetails, PatientListItem, ReferenceCatalogParameter, ReferenceSource } from "../types";
+
+export function getDashboard(filter: DashboardFilter): Promise<DashboardView> {
+  return invoke<DashboardView>("get_dashboard", { filter });
+}
 
 export function listPatients(): Promise<PatientListItem[]> {
   return invoke<PatientListItem[]>("list_patients");

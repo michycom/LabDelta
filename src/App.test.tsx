@@ -3,9 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as patientApi from "./api/patients";
 import App from "./App";
 import { DEMO_ACKNOWLEDGEMENT_KEY } from "./state/demoAcknowledgement";
-import type { ConfirmedReportValue, LaboratoryReport, PatientDetails, PatientListItem, ReferenceCatalogParameter, ReferenceSource } from "./types";
+import type { ConfirmedReportValue, DashboardView, LaboratoryReport, PatientDetails, PatientListItem, ReferenceCatalogParameter, ReferenceSource } from "./types";
 
 vi.mock("./api/patients", () => ({
+  getDashboard: vi.fn(),
   listPatients: vi.fn(),
   getPatientDetails: vi.fn(),
   listLaboratoryReports: vi.fn(),
@@ -13,6 +14,16 @@ vi.mock("./api/patients", () => ({
   listReferenceSources: vi.fn(),
   listReferenceCatalogParameters: vi.fn()
 }));
+
+const dashboard: DashboardView = {
+  filter: "all",
+  sortExplanation: "Outside supplied report reference first; then deterministic fields.",
+  patients: [
+    { id: "dirk", displayName: "Dirk Mayer", latestReportId: "dirk-report", latestReportDate: "2026-03-01T08:00:00Z", reportCount: 3, confirmedValueCount: 14, referenceCounts: { below: 0, within: 10, above: 4, notAssessable: 0 }, profiles: [{ id: "lipid-profile", version: 1, name: "Lipid Profile", assignedParameterCount: 3, presentParameterCount: 3, outsideReferenceCount: 2 }], highlights: [], hasChanged: true, hasLongitudinalData: true },
+    { id: "daniel", displayName: "Daniel Power", latestReportId: "daniel-report", latestReportDate: "2026-02-01T08:00:00Z", reportCount: 2, confirmedValueCount: 13, referenceCounts: { below: 0, within: 12, above: 1, notAssessable: 0 }, profiles: [{ id: "liver-profile", version: 1, name: "Liver Profile", assignedParameterCount: 3, presentParameterCount: 3, outsideReferenceCount: 1 }], highlights: [], hasChanged: true, hasLongitudinalData: true },
+    { id: "8bd067aa-f087-8f27-88a7-0a9cf16fb054", displayName: "Eva Mittel", latestReportId: "18f3c5f0-6ce8-8d2d-99c6-ad7f43af18ec", latestReportDate: "2025-01-10T08:15:00Z", reportCount: 2, confirmedValueCount: 8, referenceCounts: { below: 0, within: 8, above: 0, notAssessable: 0 }, profiles: [{ id: "small-blood-count", version: 1, name: "Small Blood Count", assignedParameterCount: 8, presentParameterCount: 8, outsideReferenceCount: 0 }], highlights: [], hasChanged: true, hasLongitudinalData: true }
+  ]
+};
 
 const patient: PatientListItem = {
   id: "8bd067aa-f087-8f27-88a7-0a9cf16fb054",
@@ -99,6 +110,7 @@ afterEach(cleanup);
 beforeEach(() => {
   window.localStorage.setItem(DEMO_ACKNOWLEDGEMENT_KEY, "true");
   vi.clearAllMocks();
+  vi.mocked(patientApi.getDashboard).mockResolvedValue(dashboard);
   vi.mocked(patientApi.listPatients).mockResolvedValue([patient]);
   vi.mocked(patientApi.getPatientDetails).mockResolvedValue(details);
   vi.mocked(patientApi.listLaboratoryReports).mockResolvedValue([report]);
@@ -110,6 +122,7 @@ beforeEach(() => {
 describe("persisted synthetic demo flow", () => {
   it("renders patient, report, confirmed value, original source, and provenance", async () => {
     render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Reports" }));
 
     expect(await screen.findByRole("heading", { name: "Eva Mittel" })).toBeInTheDocument();
     expect(screen.getAllByText("2025-01-10T08:15:00Z").length).toBeGreaterThan(0);
@@ -145,6 +158,7 @@ describe("persisted synthetic demo flow", () => {
     vi.mocked(patientApi.listPatients).mockReturnValue(new Promise(() => undefined));
 
     render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Reports" }));
 
     expect(screen.getByText("Loading approved demo patients from local SQLite…")).toBeInTheDocument();
   });
@@ -153,6 +167,7 @@ describe("persisted synthetic demo flow", () => {
     vi.mocked(patientApi.listPatients).mockResolvedValue([]);
 
     render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Reports" }));
 
     expect(await screen.findByText("No approved demo patients are stored.")).toBeInTheDocument();
   });
@@ -161,6 +176,7 @@ describe("persisted synthetic demo flow", () => {
     vi.mocked(patientApi.listPatients).mockRejectedValue({ code: "persistence", message: "SQLite read failed" });
 
     render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Reports" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("SQLite read failed");
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
@@ -171,6 +187,7 @@ describe("persisted synthetic demo flow", () => {
     vi.mocked(patientApi.listLaboratoryReports).mockResolvedValue([]);
 
     render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Reports" }));
 
     expect(await screen.findByText("No laboratory reports are stored for this patient.")).toBeInTheDocument();
     expect(patientApi.listConfirmedReportValues).not.toHaveBeenCalled();
@@ -179,11 +196,41 @@ describe("persisted synthetic demo flow", () => {
   it("shows explicit empty and error states for confirmed values", async () => {
     vi.mocked(patientApi.listConfirmedReportValues).mockResolvedValue([]);
     const firstRender = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Reports" }));
     expect(await screen.findByText("No explicitly confirmed working values are stored for this report.")).toBeInTheDocument();
 
     firstRender.unmount();
     vi.mocked(patientApi.listConfirmedReportValues).mockRejectedValue({ code: "persistence", message: "Value read failed" });
     render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Reports" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Value read failed");
+  });
+
+  it("loads exactly the three approved dashboard patients in Rust order", async () => {
+    render(<App />);
+    expect(await screen.findByRole("heading", { name: "Approved synthetic patients" })).toBeInTheDocument();
+    const names = screen.getAllByRole("button").filter(button => ["Dirk Mayer", "Daniel Power", "Eva Mittel"].some(name => button.textContent?.includes(name)));
+    expect(names.map(button => button.textContent)).toEqual(expect.arrayContaining([expect.stringContaining("Dirk Mayer"), expect.stringContaining("Daniel Power"), expect.stringContaining("Eva Mittel")]));
+    expect(patientApi.getDashboard).toHaveBeenCalledWith("all");
+    expect(screen.queryByText(/Demo-Marker|Demo-Marker Alpha|Iota/)).not.toBeInTheDocument();
+  });
+
+  it("requests deterministic dashboard filters from the Rust core", async () => {
+    render(<App />);
+    await screen.findByRole("heading", { name: "Approved synthetic patients" });
+    fireEvent.click(screen.getByRole("button", { name: "Outside reference" }));
+    await waitFor(() => expect(patientApi.getDashboard).toHaveBeenCalledWith("outsideReference"));
+    fireEvent.click(screen.getByRole("button", { name: "Changed" }));
+    await waitFor(() => expect(patientApi.getDashboard).toHaveBeenCalledWith("changed"));
+    fireEvent.click(screen.getByRole("button", { name: "Longitudinal data" }));
+    await waitFor(() => expect(patientApi.getDashboard).toHaveBeenCalledWith("longitudinalData"));
+  });
+
+  it("opens only the disabled-import information view", async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Import" }));
+    expect(screen.getByText("Manual import is disabled in the Contest Demo. LabDelta uses only approved synthetic fixtures.")).toBeInTheDocument();
+    expect(document.querySelector('input[type="file"]')).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /choose file|select file/i })).not.toBeInTheDocument();
   });
 });

@@ -163,4 +163,63 @@ export interface CommandFailure {
   message: string;
 }
 
-export type AppSection = "dashboard" | "patients";
+export type DashboardFilter = "all" | "outsideReference" | "changed" | "longitudinalData";
+export type ReferenceStatus = "below" | "within" | "above" | "notAssessable";
+export type MathematicalDirection = "higher" | "lower" | "equal" | "noComparison";
+
+export interface DashboardValueDetail {
+  workingValueId: string;
+  parameterName: string;
+  currentValue: string;
+  unit: string | null;
+  previousValue: string | null;
+  absoluteDifference: string | null;
+  relativeDifferencePercent: string | null;
+  direction: MathematicalDirection;
+  suppliedReference: string | null;
+  referenceStatus: ReferenceStatus;
+  currentReportId: string;
+  currentReportDate: string;
+  previousReportId: string | null;
+  previousReportDate: string | null;
+  profileTags: string[];
+  originalParameterName: string;
+  originalDocumentName: string;
+  provenanceLabel: string;
+  provenanceExcerpt: string | null;
+  referenceRuleId: string;
+  referenceRuleVersion: number;
+  comparisonRuleId: string;
+  comparisonRuleVersion: number;
+}
+
+export interface DashboardProfile {
+  id: string;
+  version: number;
+  name: string;
+  assignedParameterCount: number;
+  presentParameterCount: number;
+  outsideReferenceCount: number;
+}
+
+export interface DashboardPatient {
+  id: string;
+  displayName: string;
+  latestReportId: string;
+  latestReportDate: string;
+  reportCount: number;
+  confirmedValueCount: number;
+  referenceCounts: { below: number; within: number; above: number; notAssessable: number };
+  profiles: DashboardProfile[];
+  highlights: DashboardValueDetail[];
+  hasChanged: boolean;
+  hasLongitudinalData: boolean;
+}
+
+export interface DashboardView {
+  filter: DashboardFilter;
+  sortExplanation: string;
+  patients: DashboardPatient[];
+}
+
+export type AppSection = "dashboard" | "patients" | "reports" | "provenance" | "import";

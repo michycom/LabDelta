@@ -5,10 +5,13 @@ import App from "../App";
 import { DEMO_ACKNOWLEDGEMENT_KEY } from "../state/demoAcknowledgement";
 
 vi.mock("../api/patients", () => ({
+  getDashboard: vi.fn(),
   listPatients: vi.fn(),
   getPatientDetails: vi.fn(),
   listLaboratoryReports: vi.fn(),
-  listConfirmedReportValues: vi.fn()
+  listConfirmedReportValues: vi.fn(),
+  listReferenceSources: vi.fn(),
+  listReferenceCatalogParameters: vi.fn()
 }));
 
 afterEach(cleanup);
@@ -17,6 +20,8 @@ beforeEach(() => {
   window.localStorage.clear();
   vi.clearAllMocks();
   vi.mocked(patientApi.listPatients).mockResolvedValue([]);
+  vi.mocked(patientApi.getDashboard).mockResolvedValue({ filter: "all", sortExplanation: "Deterministic", patients: [] });
+  vi.mocked(patientApi.listReferenceSources).mockResolvedValue([]);
 });
 
 describe("demo disclaimer", () => {
@@ -37,7 +42,7 @@ describe("demo disclaimer", () => {
 
     expect(window.localStorage.getItem(DEMO_ACKNOWLEDGEMENT_KEY)).toBe("true");
     expect(screen.getByRole("status")).toHaveTextContent("Demo – ausschließlich synthetische Testdaten");
-    expect(await screen.findByText("No approved demo patients are stored.")).toBeInTheDocument();
+    expect(await screen.findByText("No approved demo patients match this filter.")).toBeInTheDocument();
 
     firstRender.unmount();
     render(<App />);
