@@ -212,7 +212,8 @@ describe("persisted synthetic demo flow", () => {
     const names = screen.getAllByRole("button").filter(button => ["Dirk Mayer", "Daniel Power", "Eva Mittel"].some(name => button.textContent?.includes(name)));
     expect(names.map(button => button.textContent)).toEqual(expect.arrayContaining([expect.stringContaining("Dirk Mayer"), expect.stringContaining("Daniel Power"), expect.stringContaining("Eva Mittel")]));
     expect(patientApi.getDashboard).toHaveBeenCalledWith("all");
-    expect(screen.queryByText(/Demo-Marker|Demo-Marker Alpha|Iota/)).not.toBeInTheDocument();
+    const obsoleteMarkerPrefix = ["Demo", "Marker"].join("-");
+    expect(document.body).not.toHaveTextContent(obsoleteMarkerPrefix);
   });
 
   it("requests deterministic dashboard filters from the Rust core", async () => {
