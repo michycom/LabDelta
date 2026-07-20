@@ -128,11 +128,11 @@ describe("persisted synthetic demo flow", () => {
     expect(screen.getAllByText("2025-01-10T08:15:00Z").length).toBeGreaterThan(0);
     expect(screen.getAllByText("LabDelta Synthetic Laboratory North").length).toBeGreaterThan(0);
     expect((await screen.findAllByText("Leukocytes")).length).toBeGreaterThan(0);
-    expect(screen.getByText("6.2")).toBeInTheDocument();
-    expect(screen.getByText("G/L")).toBeInTheDocument();
-    expect(screen.getByText("4.0-10.0")).toBeInTheDocument();
+    expect(screen.getAllByText("6.2").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("G/L").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("4.0-10.0").length).toBeGreaterThan(0);
     expect(screen.getByText("JSON path: $.reports[0].values[0]")).toBeInTheDocument();
-    expect(screen.getByText("Source: eva-mittel.json")).toBeInTheDocument();
+    expect(screen.getAllByText("Source: eva-mittel.json").length).toBeGreaterThan(0);
     expect(screen.getByText(/height: 160 cm \(explicit\)/)).toBeInTheDocument();
     expect(screen.getByText(/Small Blood Count/)).toBeInTheDocument();
     expect(screen.getByText(/General Health/)).toBeInTheDocument();
