@@ -64,6 +64,28 @@ pub struct PatientDetails {
     pub updated_at: String,
     pub is_archived: bool,
     pub archived_at: Option<String>,
+    pub body_measurements: Vec<BodyMeasurement>,
+    pub profiles: Vec<PatientProfile>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BodyMeasurement {
+    pub kind: String,
+    pub measured_at: String,
+    pub original_value_text: String,
+    pub original_unit: String,
+    pub verification_status: ConfirmationStatus,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PatientProfile {
+    pub id: String,
+    pub version: u32,
+    pub name: String,
+    pub description: String,
+    pub parameter_names: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

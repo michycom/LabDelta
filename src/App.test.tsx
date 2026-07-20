@@ -16,18 +16,26 @@ vi.mock("./api/patients", () => ({
 
 const patient: PatientListItem = {
   id: "8bd067aa-f087-8f27-88a7-0a9cf16fb054",
-  displayName: "Nova Linden",
-  dateOfBirth: "1988-02-14",
+  displayName: "Eva Mittel",
+  dateOfBirth: "2001-03-12",
   isArchived: false
 };
 
 const details: PatientDetails = {
   ...patient,
-  sexReferenceContext: null,
-  externalIdentifier: "DEMO-001",
+  sexReferenceContext: "female",
+  externalIdentifier: "DEMO-EVA",
   createdAt: "2025-01-11T10:00:00Z",
   updatedAt: "2025-01-11T10:00:00Z",
-  archivedAt: null
+  archivedAt: null,
+  bodyMeasurements: [
+    { kind: "height", measuredAt: "2026-01-15T08:00:00Z", originalValueText: "160", originalUnit: "cm", verificationStatus: "explicit" },
+    { kind: "weight", measuredAt: "2026-01-15T08:00:00Z", originalValueText: "45", originalUnit: "kg", verificationStatus: "explicit" }
+  ],
+  profiles: [
+    { id: "small-blood-count", version: 1, name: "Small Blood Count", description: "Static grouping", parameterNames: ["Leukocytes", "Erythrocytes", "Hemoglobin", "Hematocrit", "MCV", "MCH", "MCHC", "Platelets"] },
+    { id: "general-health", version: 1, name: "General Health", description: "Static grouping", parameterNames: ["Leukocytes", "Hemoglobin", "Creatinine", "CRP"] }
+  ]
 };
 
 const report: LaboratoryReport = {
@@ -46,20 +54,20 @@ const confirmedValue: ConfirmedReportValue = {
   reportId: report.id,
   extractionVersionId: "extraction-version-1",
   versionNumber: 1,
-  parameterName: "Demo-Marker Alpha",
-  confirmedValue: { kind: "numericText", value: "12" },
-  unit: "demo-unit-A",
-  suppliedReferenceRange: "10–20",
+  parameterName: "Leukocytes",
+  confirmedValue: { kind: "numericText", value: "6.2" },
+  unit: "G/L",
+  suppliedReferenceRange: "4.0-10.0",
   confirmationStatus: "explicit",
   original: {
     id: "original-value-1",
-    parameterName: "Demo-Marker Alpha",
-    valueText: "12",
-    unit: "demo-unit-A",
-    suppliedReferenceRange: "10–20",
+    parameterName: "Leukocytes",
+    valueText: "6.2",
+    unit: "G/L",
+    suppliedReferenceRange: "4.0-10.0",
     document: {
       id: "document-1",
-      originalFileName: "nova-linden.json",
+      originalFileName: "eva-mittel.json",
       checksumAlgorithm: "SHA-256",
       contentChecksum: "a".repeat(64)
     }
@@ -67,7 +75,7 @@ const confirmedValue: ConfirmedReportValue = {
   provenance: {
     id: "location-1",
     locator: { kind: "jsonPath", path: "$.reports[0].values[0]" },
-    textExcerpt: "Demo-Marker Alpha: 12 demo-unit-A; supplied reference 10–20"
+    textExcerpt: "Leukocytes: 6.2 G/L; supplied synthetic report reference 4.0-10.0"
   }
 };
 
@@ -80,8 +88,8 @@ const referenceSources: ReferenceSource[] = [
 ];
 
 const demoCatalogParameters: ReferenceCatalogParameter[] = Array.from({ length: 9 }, (_, index) => ({
-  catalogId: "demo-reference-catalog", catalogVersion: 1, parameterId: `demo-marker-${index + 1}`,
-  displayName: `Demo-Marker ${index + 1}`, originalUnit: `demo-unit-${index + 1}`,
+  catalogId: "demo-reference-catalog", catalogVersion: 1, parameterId: `synthetic-parameter-${index + 1}`,
+  displayName: ["Leukocytes", "Erythrocytes", "Hemoglobin", "Hematocrit", "MCV", "MCH", "MCHC", "Platelets", "CRP"][index] ?? "CRP", originalUnit: "synthetic-unit",
   lowerBoundText: "1", upperBoundText: "2", referenceRuleText: null,
   contextNotice: "Synthetic demonstration interval; no medical meaning.", displayOrder: index + 1
 }));
@@ -103,15 +111,18 @@ describe("persisted synthetic demo flow", () => {
   it("renders patient, report, confirmed value, original source, and provenance", async () => {
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "Nova Linden" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Eva Mittel" })).toBeInTheDocument();
     expect(screen.getAllByText("2025-01-10T08:15:00Z").length).toBeGreaterThan(0);
     expect(screen.getAllByText("LabDelta Synthetic Laboratory North").length).toBeGreaterThan(0);
-    expect(await screen.findByText("Demo-Marker Alpha")).toBeInTheDocument();
-    expect(screen.getByText("12")).toBeInTheDocument();
-    expect(screen.getByText("demo-unit-A")).toBeInTheDocument();
-    expect(screen.getByText("10–20")).toBeInTheDocument();
+    expect((await screen.findAllByText("Leukocytes")).length).toBeGreaterThan(0);
+    expect(screen.getByText("6.2")).toBeInTheDocument();
+    expect(screen.getByText("G/L")).toBeInTheDocument();
+    expect(screen.getByText("4.0-10.0")).toBeInTheDocument();
     expect(screen.getByText("JSON path: $.reports[0].values[0]")).toBeInTheDocument();
-    expect(screen.getByText("Source: nova-linden.json")).toBeInTheDocument();
+    expect(screen.getByText("Source: eva-mittel.json")).toBeInTheDocument();
+    expect(screen.getByText(/height: 160 cm \(explicit\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Small Blood Count/)).toBeInTheDocument();
+    expect(screen.getByText(/General Health/)).toBeInTheDocument();
     expect(patientApi.getPatientDetails).toHaveBeenCalledWith(patient.id);
     expect(patientApi.listLaboratoryReports).toHaveBeenCalledWith(patient.id);
     expect(patientApi.listConfirmedReportValues).toHaveBeenCalledWith(report.id);

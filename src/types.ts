@@ -65,6 +65,20 @@ export interface PatientDetails extends PatientListItem {
   createdAt: string;
   updatedAt: string;
   archivedAt: string | null;
+  bodyMeasurements: Array<{
+    kind: string;
+    measuredAt: string;
+    originalValueText: string;
+    originalUnit: string;
+    verificationStatus: "explicit";
+  }>;
+  profiles: Array<{
+    id: string;
+    version: number;
+    name: string;
+    description: string;
+    parameterNames: string[];
+  }>;
 }
 
 export interface LaboratoryReport {

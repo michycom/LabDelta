@@ -2,11 +2,12 @@ use rusqlite::{Connection, OptionalExtension};
 use thiserror::Error;
 
 use crate::domain::{
-    ConfirmationStatus, ConfirmedReportValue, ExtractionVersionId, IdentifierError,
-    LaboratoryReportSummary, OriginalDocumentId, OriginalDocumentReference, OriginalValueId,
-    OriginalValueReference, PatientDetails, PatientId, PatientSummary, PersistedValue,
-    ProvenanceLocationId, ProvenanceLocator, ProvenanceReference, ReferenceCatalogParameter,
-    ReferenceSource, ReferenceSourceAvailability, ReferenceSourceKind, ReportId, WorkingValueId,
+    BodyMeasurement, ConfirmationStatus, ConfirmedReportValue, ExtractionVersionId,
+    IdentifierError, LaboratoryReportSummary, OriginalDocumentId, OriginalDocumentReference,
+    OriginalValueId, OriginalValueReference, PatientDetails, PatientId, PatientProfile,
+    PatientSummary, PersistedValue, ProvenanceLocationId, ProvenanceLocator, ProvenanceReference,
+    ReferenceCatalogParameter, ReferenceSource, ReferenceSourceAvailability, ReferenceSourceKind,
+    ReportId, WorkingValueId,
 };
 
 pub(crate) fn list_reference_sources(
@@ -241,6 +242,8 @@ pub(crate) fn patient_details(
             entity: "patient",
             id: patient_id.as_ref().to_owned(),
         })?;
+    let body_measurements = patient_body_measurements(connection, patient_id)?;
+    let profiles = patient_profiles(connection, patient_id)?;
     Ok(PatientDetails {
         id: PatientId::try_from(row.0)?,
         display_name: row.1,
@@ -251,7 +254,116 @@ pub(crate) fn patient_details(
         updated_at: row.6,
         is_archived: row.7,
         archived_at: row.8,
+        body_measurements,
+        profiles,
     })
+}
+
+fn patient_body_measurements(
+    connection: &Connection,
+    patient_id: &PatientId,
+) -> Result<Vec<BodyMeasurement>, ReadError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT measurement_kind, measured_at, original_value_text,
+                    original_unit, verification_status
+             FROM patient_body_measurements
+             WHERE patient_id = ?1
+             ORDER BY measured_at, measurement_kind, id",
+        )
+        .map_err(persistence_error)?;
+    let rows = statement
+        .query_map([patient_id.as_ref()], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+            ))
+        })
+        .map_err(persistence_error)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(persistence_error)?;
+    rows.into_iter()
+        .map(|row| {
+            let verification_status = match row.4.as_str() {
+                "explicit" => ConfirmationStatus::Explicit,
+                value => {
+                    return Err(ReadError::InvalidStoredData {
+                        entity: "body measurement",
+                        id: patient_id.as_ref().to_owned(),
+                        reason: format!("unsupported verification status '{value}'"),
+                    })
+                }
+            };
+            Ok(BodyMeasurement {
+                kind: row.0,
+                measured_at: row.1,
+                original_value_text: row.2,
+                original_unit: row.3,
+                verification_status,
+            })
+        })
+        .collect()
+}
+
+fn patient_profiles(
+    connection: &Connection,
+    patient_id: &PatientId,
+) -> Result<Vec<PatientProfile>, ReadError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT profile.id, profile.version, profile.name, profile.description
+             FROM demo_patient_profiles AS assignment
+             JOIN laboratory_profiles AS profile
+               ON profile.id = assignment.profile_id
+              AND profile.version = assignment.profile_version
+             WHERE assignment.patient_id = ?1
+             ORDER BY assignment.display_order, profile.id",
+        )
+        .map_err(persistence_error)?;
+    let profiles = statement
+        .query_map([patient_id.as_ref()], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, u32>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+            ))
+        })
+        .map_err(persistence_error)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(persistence_error)?;
+    profiles
+        .into_iter()
+        .map(|profile| {
+            let mut members = connection
+                .prepare(
+                    "SELECT parameter.canonical_display
+                     FROM profile_memberships AS membership
+                     JOIN laboratory_parameters AS parameter
+                       ON parameter.id = membership.parameter_id
+                      AND parameter.version = membership.parameter_version
+                     WHERE membership.profile_id = ?1
+                       AND membership.profile_version = ?2
+                     ORDER BY membership.display_order, parameter.id",
+                )
+                .map_err(persistence_error)?;
+            let parameter_names = members
+                .query_map(rusqlite::params![profile.0, profile.1], |row| row.get(0))
+                .map_err(persistence_error)?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(persistence_error)?;
+            Ok(PatientProfile {
+                id: profile.0,
+                version: profile.1,
+                name: profile.2,
+                description: profile.3,
+                parameter_names,
+            })
+        })
+        .collect()
 }
 
 pub(crate) fn laboratory_reports(
