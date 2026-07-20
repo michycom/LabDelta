@@ -202,7 +202,10 @@ mod tests {
     use crate::domain::{PatientError, PatientInput};
     use crate::migrations::LATEST_SCHEMA_VERSION;
 
-    const PERSISTENCE_TABLES: [&str; 13] = [
+    const PERSISTENCE_TABLES: [&str; 24] = [
+        "analysis_contract_input_refs",
+        "analysis_contract_rule_refs",
+        "analysis_contracts",
         "confirmed_working_values",
         "correction_history",
         "demo_seed_documents",
@@ -210,12 +213,20 @@ mod tests {
         "demo_seed_runs",
         "extracted_values",
         "extraction_versions",
+        "laboratory_parameters",
+        "laboratory_profiles",
         "laboratory_reports",
+        "measurement_units",
         "original_documents",
         "original_values",
+        "parameter_external_codes",
+        "parameter_names",
         "patients",
+        "profile_memberships",
         "provenance_locations",
+        "rule_definitions",
         "schema_migrations",
+        "unit_conversion_rules",
     ];
 
     fn input(name: &str, birth_date: &str) -> PatientInput {
@@ -585,6 +596,72 @@ mod tests {
                 patient_id
             );
         }
+    }
+
+    #[test]
+    fn catalog_schema_is_empty_versioned_and_referentially_safe() {
+        let directory = tempdir().expect("temporary directory");
+        let database_path = directory.path().join("catalog.sqlite3");
+        {
+            let repository =
+                PatientRepository::open(&database_path).expect("open catalog database");
+            for table in [
+                "rule_definitions",
+                "laboratory_parameters",
+                "parameter_names",
+                "parameter_external_codes",
+                "measurement_units",
+                "unit_conversion_rules",
+                "laboratory_profiles",
+                "profile_memberships",
+                "analysis_contracts",
+            ] {
+                assert_eq!(row_count(repository.connection(), table), 0, "{table}");
+            }
+
+            repository
+                .connection()
+                .execute(
+                    "INSERT INTO laboratory_parameters (
+                        id, version, canonical_display, status, source
+                     ) VALUES ('parameter-demo', 1, 'Synthetic parameter', 'draft', 'contest test')",
+                    [],
+                )
+                .expect("insert first parameter version");
+            repository
+                .connection()
+                .execute(
+                    "INSERT INTO laboratory_parameters (
+                        id, version, canonical_display, status, source
+                     ) VALUES ('parameter-demo', 2, 'Synthetic parameter v2', 'draft', 'contest test')",
+                    [],
+                )
+                .expect("insert second parameter version");
+            repository
+                .connection()
+                .execute(
+                    "INSERT INTO parameter_names (
+                        parameter_id, parameter_version, name, name_kind, source
+                     ) VALUES ('parameter-demo', 2, 'Synthetic alias', 'alias', 'contest test')",
+                    [],
+                )
+                .expect("insert parameter alias");
+            assert!(repository
+                .connection()
+                .execute(
+                    "INSERT INTO parameter_names (
+                        parameter_id, parameter_version, name, name_kind, source
+                     ) VALUES ('missing', 1, 'Orphan alias', 'alias', 'contest test')",
+                    [],
+                )
+                .is_err());
+            assert_no_foreign_key_violations(repository.connection());
+        }
+
+        let reopened = PatientRepository::open(&database_path).expect("reopen catalog database");
+        assert_eq!(row_count(reopened.connection(), "laboratory_parameters"), 2);
+        assert_eq!(row_count(reopened.connection(), "parameter_names"), 1);
+        assert_no_foreign_key_violations(reopened.connection());
     }
 
     #[test]
