@@ -51,6 +51,10 @@ reference-interval classification and exact arithmetic comparison.
   subtitles, local Web Speech synthesis when available, and resilient
   highlighting of real asynchronously loaded UI elements. It contains no video,
   duplicate interface, import operation, medical rule, cloud, or runtime AI.
+- Public-demo polish adds locally remembered collapsible panels, an animated
+  15-second introduction, bounded Previous/Next demo actions, stable highlight
+  anchors, and multi-page synthetic HTML documents generated solely from the
+  existing read model. No migration or medical logic was added.
 - Seed, future controlled fixture import, and any future real-data path remain
   separate. Gate 3.0 implements only the seed.
 
@@ -93,5 +97,5 @@ git diff --check
 The PDF is additionally checked by extracting its selectable text and by
 rendering every page to PNG for visual inspection.
 
-Validated on 2026-07-20: all commands above pass (35 Rust tests and 19 frontend
+Validated on 2026-07-20: all commands above pass (35 Rust tests and 23 frontend
 tests), and the macOS `LabDelta.app` bundle is produced.

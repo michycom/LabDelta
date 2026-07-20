@@ -10,11 +10,12 @@ loaded.
 
 ## Controls
 
-Play, Pause, Stop, Restart, English, and Deutsch are available in the persistent
-walkthrough controller and the native Tauri Demo menu. Pause preserves the
-current step. Stop returns the state machine to step one. Restart begins step one
-immediately. Reset Demo Data remains disabled because the walkthrough does not
-mutate the approved seed.
+Play, Previous Step, Next Step, Pause, Stop, Restart, English, and Deutsch are
+available in the persistent walkthrough controller and the native Tauri Demo
+menu. Previous and Next move exactly one bounded step while retaining playback
+state. Pause preserves the current step. Stop returns the state machine to step
+one. Restart begins step one immediately. Reset Demo Data remains disabled
+because the walkthrough does not mutate the approved seed.
 
 Animated subtitles are always visible while playing or paused. When supported
 by the local WebView and operating system, `window.speechSynthesis` reads the
@@ -22,7 +23,8 @@ same centralized English or German text. No network or runtime AI is involved.
 
 ## Ten steps
 
-1. Introduction and permanent synthetic-data marker.
+1. A 15-second animated introduction inside the live application, with product
+   identity, principles, bilingual narration, and progress.
 2. SQLite-driven dashboard and deterministic ordering.
 3. The fully synthetic Dirk Mayer dashboard card.
 4. Confirmed report values and supplied references.

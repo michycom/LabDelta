@@ -41,9 +41,23 @@ Reference Catalog v1 remains optional and is never applied automatically.
   dashboard/sidebar navigation, and full screen are active. Show Original Source
   is disabled because there is no separate meaningful source-view surface.
 - **Demo:** Play, Pause, Stop, Restart, English, and Deutsch drive the central
-  ten-step walkthrough. Reset Demo Data remains visible but disabled because the
-  walkthrough performs no seed mutation.
+  ten-step walkthrough. Previous Step and Next Step move one bounded step in the
+  same central state machine. Reset Demo Data remains visible but disabled
+  because the walkthrough performs no seed mutation.
 - **Help:** all entries open local informational views without network access.
 
 No file dialog, drag-and-drop target, import operation, parser, or write command
 is registered for the dashboard or native menu.
+
+## Panel surface and highlight targets
+
+Dashboard, Patient Detail, Laboratory Profiles, Parameter History, Report
+Values, Original Document, and Import use a shared Collapse/Expand component.
+Collapsed state is local UI preference state; children remain mounted, so
+collapsing does not refetch or alter SQLite data. Drag-and-drop reordering is not
+implemented.
+
+Stable targets are `dashboard-overview`, `dashboard-filters`,
+`dashboard-patient-table`, `patient-detail`, `comparison-table`,
+`profile-overview`, `parameter-history`, `original-document`, `document-page`,
+`provenance-panel`, and `import-information`.

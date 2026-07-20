@@ -34,7 +34,16 @@ information actions, and controls for a ten-step self-running walkthrough. The
 same Play, Pause, Stop, Restart, English, and Deutsch controls remain visible in
 the application. The walkthrough drives real views, highlights their real data,
 shows animated subtitles, and optionally speaks them through the operating
-system's Web Speech synthesis. It does not create a simulated UI or video.
+system's Web Speech synthesis. Previous Step and Next Step move exactly one
+step through the same state machine. The 15-second introduction is an animated
+part of the live application, not a screenshot, simulated UI, or video.
+
+The main UI areas use locally remembered Collapse/Expand panels. The report
+view generates multi-page, report-like synthetic document pages directly from
+the selected seeded patient, report, confirmed original values, and provenance.
+These pages are HTML UI surfaces only; no PDF, OCR, parser, or document import
+is involved. Stable demo and parameter anchors prepare coordinated future
+highlights across dashboard, comparison, history, document, and provenance.
 
 Report Reference remains the default; the optional Demo Reference Catalog v1
 is synthetic and is never applied automatically. `scripts/generate_demo_artifacts.py`
@@ -43,6 +52,8 @@ fixtures; their hashes are recorded in
 `fixtures/demo_seed/v1/derived-artifacts.json`.
 
 See `docs/DEMO_WALKTHROUGH.md` for the self-running demonstration,
+`docs/UI_POLISH.md` and `docs/SYNTHETIC_DOCUMENT_VIEW.md` for the public-demo
+surface,
 `docs/DASHBOARD_AND_NATIVE_MENU.md` for the visible workflow, and
 `docs/GATE_3_0_ACCEPTANCE.md` for the implemented scope and validation commands.
 
