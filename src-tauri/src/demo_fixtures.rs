@@ -8,11 +8,33 @@ pub(crate) const DEMO_MARKER: &str = "LABDELTA_SYNTHETIC_DEMO_V1";
 const SUPPORTED_MANIFEST_VERSION: &str = "1";
 const SUPPORTED_FIXTURE_SCHEMA_VERSION: &str = "1";
 const MANIFEST_JSON: &str = include_str!("../../fixtures/demo_seed/v1/manifest.json");
+const DERIVED_ARTIFACTS_JSON: &str =
+    include_str!("../../fixtures/demo_seed/v1/derived-artifacts.json");
+
+const DERIVED_ARTIFACTS: &[EmbeddedArtifact<'static>] = &[
+    EmbeddedArtifact {
+        path: "approved-demo-reports.csv",
+        media_type: "text/csv",
+        content: include_bytes!("../../fixtures/demo_seed/v1/approved-demo-reports.csv"),
+    },
+    EmbeddedArtifact {
+        path: "approved-demo-reports.pdf",
+        media_type: "application/pdf",
+        content: include_bytes!("../../fixtures/demo_seed/v1/approved-demo-reports.pdf"),
+    },
+];
 
 #[derive(Clone, Copy)]
 struct EmbeddedSource<'a> {
     path: &'a str,
     content: &'a str,
+}
+
+#[derive(Clone, Copy)]
+struct EmbeddedArtifact<'a> {
+    path: &'a str,
+    media_type: &'a str,
+    content: &'a [u8],
 }
 
 const EMBEDDED_SOURCES: &[EmbeddedSource<'static>] = &[
@@ -61,6 +83,23 @@ pub(crate) struct ManifestFixture {
     pub demo_marker: String,
     pub path: String,
     pub sha256: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct DerivedArtifactManifest {
+    manifest_version: String,
+    demo_marker: String,
+    generated_from: Vec<String>,
+    artifacts: Vec<DerivedArtifactEntry>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct DerivedArtifactEntry {
+    path: String,
+    media_type: String,
+    sha256: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -139,6 +178,7 @@ pub(crate) enum FixtureError {
 }
 
 pub(crate) fn approved_fixtures() -> Result<ApprovedFixtureSet, FixtureError> {
+    validate_derived_artifacts(DERIVED_ARTIFACTS_JSON, DERIVED_ARTIFACTS)?;
     validate_fixture_set(MANIFEST_JSON, EMBEDDED_SOURCES)
 }
 
@@ -233,6 +273,48 @@ fn validate_manifest(manifest: &FixtureManifest) -> Result<(), FixtureError> {
         return Err(FixtureError::InvalidManifest(
             "at least one fixture is required".to_owned(),
         ));
+    }
+    Ok(())
+}
+
+fn validate_derived_artifacts(
+    manifest_json: &str,
+    artifacts: &[EmbeddedArtifact<'_>],
+) -> Result<(), FixtureError> {
+    let manifest: DerivedArtifactManifest = serde_json::from_str(manifest_json)
+        .map_err(|error| FixtureError::InvalidManifest(error.to_string()))?;
+    let source_paths = EMBEDDED_SOURCES
+        .iter()
+        .map(|source| source.path.to_owned())
+        .collect::<Vec<_>>();
+    if manifest.manifest_version != SUPPORTED_MANIFEST_VERSION
+        || manifest.demo_marker != DEMO_MARKER
+        || manifest.generated_from != source_paths
+        || manifest.artifacts.len() != artifacts.len()
+    {
+        return Err(FixtureError::InvalidManifest(
+            "derived artifact manifest identity is invalid".to_owned(),
+        ));
+    }
+    for entry in &manifest.artifacts {
+        let artifact = artifacts
+            .iter()
+            .find(|artifact| artifact.path == entry.path)
+            .ok_or_else(|| FixtureError::UnknownFixture(entry.path.clone()))?;
+        if entry.media_type != artifact.media_type {
+            return Err(FixtureError::InvalidManifest(format!(
+                "derived artifact '{}' has an invalid media type",
+                entry.path
+            )));
+        }
+        let actual = sha256_hex(artifact.content);
+        if actual != entry.sha256 {
+            return Err(FixtureError::ChecksumMismatch {
+                fixture_id: entry.path.clone(),
+                expected: entry.sha256.clone(),
+                actual,
+            });
+        }
     }
     Ok(())
 }
@@ -335,7 +417,8 @@ fn validate_fixture(entry: &ManifestFixture, fixture: &DemoFixture) -> Result<()
 #[cfg(test)]
 mod tests {
     use super::{
-        approved_fixtures, validate_fixture_set, EmbeddedSource, FixtureError, MANIFEST_JSON,
+        approved_fixtures, validate_derived_artifacts, validate_fixture_set, EmbeddedArtifact,
+        EmbeddedSource, FixtureError, DERIVED_ARTIFACTS, DERIVED_ARTIFACTS_JSON, MANIFEST_JSON,
     };
 
     #[test]
@@ -354,6 +437,26 @@ mod tests {
             7
         );
         assert_eq!(approved.manifest_sha256.len(), 64);
+    }
+
+    #[test]
+    fn validates_derived_csv_and_pdf_checksums_fail_closed() {
+        validate_derived_artifacts(DERIVED_ARTIFACTS_JSON, DERIVED_ARTIFACTS)
+            .expect("approved derived artifacts");
+        let changed_csv = b"changed synthetic csv";
+        let artifacts = [
+            EmbeddedArtifact {
+                path: DERIVED_ARTIFACTS[0].path,
+                media_type: DERIVED_ARTIFACTS[0].media_type,
+                content: changed_csv,
+            },
+            DERIVED_ARTIFACTS[1],
+        ];
+
+        assert!(matches!(
+            validate_derived_artifacts(DERIVED_ARTIFACTS_JSON, &artifacts),
+            Err(FixtureError::ChecksumMismatch { .. })
+        ));
     }
 
     #[test]
