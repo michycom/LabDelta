@@ -1,28 +1,28 @@
 {
   "manifestVersion": "1",
-  "seedVersion": "contest-demo-v1",
+  "seedVersion": "contest-demo-v2",
   "demoMarker": "LABDELTA_SYNTHETIC_DEMO_V1",
   "fixtures": [
     {
-      "fixtureId": "labdelta-demo-elio-morgen",
-      "fixtureVersion": "1",
+      "fixtureId": "labdelta-demo-daniel-power",
+      "fixtureVersion": "2",
       "demoMarker": "LABDELTA_SYNTHETIC_DEMO_V1",
-      "path": "elio-morgen.json",
-      "sha256": "449983a7a289a475450cb1ed7549ddbf238964b71a90e02f6a9934302774b900"
+      "path": "daniel-power.json",
+      "sha256": "674caef03a39ec5a40d4289fec82f3926322b5e761979ce9c0a0bacfdaa14631"
     },
     {
-      "fixtureId": "labdelta-demo-nova-linden",
-      "fixtureVersion": "1",
+      "fixtureId": "labdelta-demo-dirk-mayer",
+      "fixtureVersion": "2",
       "demoMarker": "LABDELTA_SYNTHETIC_DEMO_V1",
-      "path": "nova-linden.json",
-      "sha256": "827cf26221c8dea6f715583df9b6c50d924a2e2da7e91dba1161d6ca29a4baf6"
+      "path": "dirk-mayer.json",
+      "sha256": "9784c027a5ad87056176da6a7e69be4941048257b7738b8c9ccaef329add470b"
     },
     {
-      "fixtureId": "labdelta-demo-tarin-vale",
-      "fixtureVersion": "1",
+      "fixtureId": "labdelta-demo-eva-mittel",
+      "fixtureVersion": "2",
       "demoMarker": "LABDELTA_SYNTHETIC_DEMO_V1",
-      "path": "tarin-vale.json",
-      "sha256": "59d1101f760d1b19f4b1dd2a2e0ed661e25b105106226baa1c755a62be0f5d5a"
+      "path": "eva-mittel.json",
+      "sha256": "7e1803d288ac749fe5a5d0946e6a52ef8b4fecd29cb3376891e777a02d67e8d4"
     }
   ]
 }

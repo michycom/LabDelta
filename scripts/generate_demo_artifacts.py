@@ -14,7 +14,7 @@ from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, 
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_DIR = ROOT / "fixtures" / "demo_seed" / "v1"
-JSON_NAMES = ("elio-morgen.json", "nova-linden.json", "tarin-vale.json")
+JSON_NAMES = ("daniel-power.json", "dirk-mayer.json", "eva-mittel.json")
 CSV_PATH = FIXTURE_DIR / "approved-demo-reports.csv"
 PDF_PATH = FIXTURE_DIR / "approved-demo-reports.pdf"
 MANIFEST_PATH = FIXTURE_DIR / "derived-artifacts.json"
@@ -76,9 +76,9 @@ def write_pdf(fixtures):
             Paragraph(f"Demo ID: {patient['externalIdentifier']} | Date of birth: {patient['dateOfBirth']} | Fixture: {fixture['fixtureId']} v{fixture['fixtureVersion']}", styles["BodyText"]),
             Spacer(1, 4 * mm),
         ])
-        for report in fixture["reports"]:
-            story.append(Paragraph(f"Report {report['specimenCollectedAt']}", styles["Heading2"]))
-            story.append(Paragraph(f"{report['laboratoryName']} | Revision {report['revisionNumber']} | Source key: {report['sourceKey']}", styles["BodyText"]))
+        for report_index, report in enumerate(fixture["reports"]):
+            if report_index:
+                story.append(PageBreak())
             data = [["Parameter", "Original value", "Unit", "Supplied reference", "Source location"]]
             for value in report["values"]:
                 data.append([
@@ -97,7 +97,11 @@ def write_pdf(fixtures):
                 ("LEFTPADDING", (0, 0), (-1, -1), 4),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 4),
             ]))
-            story.extend([Spacer(1, 2 * mm), table, Spacer(1, 4 * mm)])
+            story.extend([
+                Paragraph(f"Report {report['specimenCollectedAt']}", styles["Heading2"]),
+                Paragraph(f"{report['laboratoryName']} | Revision {report['revisionNumber']} | Source key: {report['sourceKey']}", styles["BodyText"]),
+                Spacer(1, 2 * mm), table, Spacer(1, 4 * mm),
+            ])
     document.build(story)
 
 

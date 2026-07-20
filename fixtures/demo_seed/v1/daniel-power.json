@@ -1,0 +1,357 @@
+{
+  "schemaVersion": "2",
+  "fixtureId": "labdelta-demo-daniel-power",
+  "fixtureVersion": "2",
+  "demoMarker": "LABDELTA_SYNTHETIC_DEMO_V1",
+  "sourceNotice": "Fully synthetic fixture. Supplied reference text is demonstration source data, not a medical rule.",
+  "patient": {
+    "sourceKey": "patient-daniel-power",
+    "displayName": "Daniel Power",
+    "dateOfBirth": "1989-12-18",
+    "sexReferenceContext": "male",
+    "externalIdentifier": "DEMO-DANIEL"
+  },
+  "bodyMeasurements": [],
+  "profileIds": [
+    "small-blood-count",
+    "liver-profile",
+    "inflammation",
+    "general-health"
+  ],
+  "reports": [
+    {
+      "sourceKey": "daniel-report-2026-02-12",
+      "laboratoryName": "LabDelta Synthetic Laboratory West",
+      "specimenCollectedAt": "2026-02-12T08:00:00Z",
+      "laboratoryReceivedAt": "2026-02-12T09:00:00Z",
+      "reportReleasedAt": "2026-02-12T12:00:00Z",
+      "revisionNumber": "1",
+      "importedAt": "2026-02-12T16:00:00Z",
+      "values": [
+        {
+          "sourceKey": "leukocytes",
+          "originalParameterName": "Leukocytes",
+          "originalValue": "6.8",
+          "unit": "G/L",
+          "referenceRange": "4.0-10.0",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[0]",
+            "textExcerpt": "Leukocytes: 6.8 G/L; supplied synthetic report reference 4.0-10.0"
+          }
+        },
+        {
+          "sourceKey": "erythrocytes",
+          "originalParameterName": "Erythrocytes",
+          "originalValue": "4.90",
+          "unit": "T/L",
+          "referenceRange": "4.3-5.7",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[1]",
+            "textExcerpt": "Erythrocytes: 4.90 T/L; supplied synthetic report reference 4.3-5.7"
+          }
+        },
+        {
+          "sourceKey": "hemoglobin",
+          "originalParameterName": "Hemoglobin",
+          "originalValue": "14.7",
+          "unit": "g/dL",
+          "referenceRange": "13.5-17.5",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[2]",
+            "textExcerpt": "Hemoglobin: 14.7 g/dL; supplied synthetic report reference 13.5-17.5"
+          }
+        },
+        {
+          "sourceKey": "hematocrit",
+          "originalParameterName": "Hematocrit",
+          "originalValue": "44",
+          "unit": "%",
+          "referenceRange": "40-52",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[3]",
+            "textExcerpt": "Hematocrit: 44 %; supplied synthetic report reference 40-52"
+          }
+        },
+        {
+          "sourceKey": "mcv",
+          "originalParameterName": "MCV",
+          "originalValue": "90",
+          "unit": "fL",
+          "referenceRange": "80-96",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[4]",
+            "textExcerpt": "MCV: 90 fL; supplied synthetic report reference 80-96"
+          }
+        },
+        {
+          "sourceKey": "mch",
+          "originalParameterName": "MCH",
+          "originalValue": "30.0",
+          "unit": "pg",
+          "referenceRange": "27-33",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[5]",
+            "textExcerpt": "MCH: 30.0 pg; supplied synthetic report reference 27-33"
+          }
+        },
+        {
+          "sourceKey": "mchc",
+          "originalParameterName": "MCHC",
+          "originalValue": "33.4",
+          "unit": "g/dL",
+          "referenceRange": "32-36",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[6]",
+            "textExcerpt": "MCHC: 33.4 g/dL; supplied synthetic report reference 32-36"
+          }
+        },
+        {
+          "sourceKey": "platelets",
+          "originalParameterName": "Platelets",
+          "originalValue": "226",
+          "unit": "G/L",
+          "referenceRange": "150-400",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[7]",
+            "textExcerpt": "Platelets: 226 G/L; supplied synthetic report reference 150-400"
+          }
+        },
+        {
+          "sourceKey": "alt",
+          "originalParameterName": "ALT",
+          "originalValue": "58",
+          "unit": "U/L",
+          "referenceRange": "<50",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[8]",
+            "textExcerpt": "ALT: 58 U/L; supplied synthetic report reference <50"
+          }
+        },
+        {
+          "sourceKey": "ast",
+          "originalParameterName": "AST",
+          "originalValue": "29",
+          "unit": "U/L",
+          "referenceRange": "<40",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[9]",
+            "textExcerpt": "AST: 29 U/L; supplied synthetic report reference <40"
+          }
+        },
+        {
+          "sourceKey": "ggt",
+          "originalParameterName": "GGT",
+          "originalValue": "35",
+          "unit": "U/L",
+          "referenceRange": "<60",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[10]",
+            "textExcerpt": "GGT: 35 U/L; supplied synthetic report reference <60"
+          }
+        },
+        {
+          "sourceKey": "crp",
+          "originalParameterName": "CRP",
+          "originalValue": "2.1",
+          "unit": "mg/L",
+          "referenceRange": "<5.0",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[11]",
+            "textExcerpt": "CRP: 2.1 mg/L; supplied synthetic report reference <5.0"
+          }
+        },
+        {
+          "sourceKey": "creatinine",
+          "originalParameterName": "Creatinine",
+          "originalValue": "0.95",
+          "unit": "mg/dL",
+          "referenceRange": "0.7-1.3",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[12]",
+            "textExcerpt": "Creatinine: 0.95 mg/dL; supplied synthetic report reference 0.7-1.3"
+          }
+        }
+      ]
+    },
+    {
+      "sourceKey": "daniel-report-2026-06-12",
+      "laboratoryName": "LabDelta Synthetic Laboratory West",
+      "specimenCollectedAt": "2026-06-12T08:00:00Z",
+      "laboratoryReceivedAt": "2026-06-12T09:00:00Z",
+      "reportReleasedAt": "2026-06-12T12:00:00Z",
+      "revisionNumber": "1",
+      "importedAt": "2026-06-12T16:00:00Z",
+      "values": [
+        {
+          "sourceKey": "leukocytes",
+          "originalParameterName": "Leukocytes",
+          "originalValue": "6.9",
+          "unit": "G/L",
+          "referenceRange": "4.0-10.0",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[0]",
+            "textExcerpt": "Leukocytes: 6.9 G/L; supplied synthetic report reference 4.0-10.0"
+          }
+        },
+        {
+          "sourceKey": "erythrocytes",
+          "originalParameterName": "Erythrocytes",
+          "originalValue": "4.88",
+          "unit": "T/L",
+          "referenceRange": "4.3-5.7",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[1]",
+            "textExcerpt": "Erythrocytes: 4.88 T/L; supplied synthetic report reference 4.3-5.7"
+          }
+        },
+        {
+          "sourceKey": "hemoglobin",
+          "originalParameterName": "Hemoglobin",
+          "originalValue": "14.6",
+          "unit": "g/dL",
+          "referenceRange": "13.5-17.5",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[2]",
+            "textExcerpt": "Hemoglobin: 14.6 g/dL; supplied synthetic report reference 13.5-17.5"
+          }
+        },
+        {
+          "sourceKey": "hematocrit",
+          "originalParameterName": "Hematocrit",
+          "originalValue": "44",
+          "unit": "%",
+          "referenceRange": "40-52",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[3]",
+            "textExcerpt": "Hematocrit: 44 %; supplied synthetic report reference 40-52"
+          }
+        },
+        {
+          "sourceKey": "mcv",
+          "originalParameterName": "MCV",
+          "originalValue": "90",
+          "unit": "fL",
+          "referenceRange": "80-96",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[4]",
+            "textExcerpt": "MCV: 90 fL; supplied synthetic report reference 80-96"
+          }
+        },
+        {
+          "sourceKey": "mch",
+          "originalParameterName": "MCH",
+          "originalValue": "29.9",
+          "unit": "pg",
+          "referenceRange": "27-33",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[5]",
+            "textExcerpt": "MCH: 29.9 pg; supplied synthetic report reference 27-33"
+          }
+        },
+        {
+          "sourceKey": "mchc",
+          "originalParameterName": "MCHC",
+          "originalValue": "33.2",
+          "unit": "g/dL",
+          "referenceRange": "32-36",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[6]",
+            "textExcerpt": "MCHC: 33.2 g/dL; supplied synthetic report reference 32-36"
+          }
+        },
+        {
+          "sourceKey": "platelets",
+          "originalParameterName": "Platelets",
+          "originalValue": "231",
+          "unit": "G/L",
+          "referenceRange": "150-400",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[7]",
+            "textExcerpt": "Platelets: 231 G/L; supplied synthetic report reference 150-400"
+          }
+        },
+        {
+          "sourceKey": "alt",
+          "originalParameterName": "ALT",
+          "originalValue": "52",
+          "unit": "U/L",
+          "referenceRange": "<50",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[8]",
+            "textExcerpt": "ALT: 52 U/L; supplied synthetic report reference <50"
+          }
+        },
+        {
+          "sourceKey": "ast",
+          "originalParameterName": "AST",
+          "originalValue": "31",
+          "unit": "U/L",
+          "referenceRange": "<40",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[9]",
+            "textExcerpt": "AST: 31 U/L; supplied synthetic report reference <40"
+          }
+        },
+        {
+          "sourceKey": "ggt",
+          "originalParameterName": "GGT",
+          "originalValue": "38",
+          "unit": "U/L",
+          "referenceRange": "<60",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[10]",
+            "textExcerpt": "GGT: 38 U/L; supplied synthetic report reference <60"
+          }
+        },
+        {
+          "sourceKey": "crp",
+          "originalParameterName": "CRP",
+          "originalValue": "2.8",
+          "unit": "mg/L",
+          "referenceRange": "<5.0",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[11]",
+            "textExcerpt": "CRP: 2.8 mg/L; supplied synthetic report reference <5.0"
+          }
+        },
+        {
+          "sourceKey": "creatinine",
+          "originalParameterName": "Creatinine",
+          "originalValue": "1.02",
+          "unit": "mg/dL",
+          "referenceRange": "0.7-1.3",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[12]",
+            "textExcerpt": "Creatinine: 1.02 mg/dL; supplied synthetic report reference 0.7-1.3"
+          }
+        }
+      ]
+    }
+  ]
+}

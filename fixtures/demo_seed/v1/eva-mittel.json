@@ -1,0 +1,276 @@
+{
+  "schemaVersion": "2",
+  "fixtureId": "labdelta-demo-eva-mittel",
+  "fixtureVersion": "2",
+  "demoMarker": "LABDELTA_SYNTHETIC_DEMO_V1",
+  "sourceNotice": "Fully synthetic fixture. Supplied reference text is demonstration source data, not a medical rule.",
+  "patient": {
+    "sourceKey": "patient-eva-mittel",
+    "displayName": "Eva Mittel",
+    "dateOfBirth": "2001-03-12",
+    "sexReferenceContext": "female",
+    "externalIdentifier": "DEMO-EVA"
+  },
+  "bodyMeasurements": [
+    {
+      "sourceKey": "height",
+      "kind": "height",
+      "measuredAt": "2026-01-15T08:00:00Z",
+      "originalValue": "160",
+      "originalUnit": "cm",
+      "verification": "explicit"
+    },
+    {
+      "sourceKey": "weight",
+      "kind": "weight",
+      "measuredAt": "2026-01-15T08:00:00Z",
+      "originalValue": "45",
+      "originalUnit": "kg",
+      "verification": "explicit"
+    }
+  ],
+  "profileIds": [
+    "small-blood-count",
+    "general-health"
+  ],
+  "reports": [
+    {
+      "sourceKey": "eva-report-2026-01-15",
+      "laboratoryName": "LabDelta Synthetic Laboratory Central",
+      "specimenCollectedAt": "2026-01-15T08:00:00Z",
+      "laboratoryReceivedAt": "2026-01-15T09:00:00Z",
+      "reportReleasedAt": "2026-01-15T12:00:00Z",
+      "revisionNumber": "1",
+      "importedAt": "2026-01-15T16:00:00Z",
+      "values": [
+        {
+          "sourceKey": "leukocytes",
+          "originalParameterName": "Leukocytes",
+          "originalValue": "6.2",
+          "unit": "G/L",
+          "referenceRange": "4.0-10.0",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[0]",
+            "textExcerpt": "Leukocytes: 6.2 G/L; supplied synthetic report reference 4.0-10.0"
+          }
+        },
+        {
+          "sourceKey": "erythrocytes",
+          "originalParameterName": "Erythrocytes",
+          "originalValue": "4.55",
+          "unit": "T/L",
+          "referenceRange": "3.9-5.2",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[1]",
+            "textExcerpt": "Erythrocytes: 4.55 T/L; supplied synthetic report reference 3.9-5.2"
+          }
+        },
+        {
+          "sourceKey": "hemoglobin",
+          "originalParameterName": "Hemoglobin",
+          "originalValue": "13.6",
+          "unit": "g/dL",
+          "referenceRange": "12.0-16.0",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[2]",
+            "textExcerpt": "Hemoglobin: 13.6 g/dL; supplied synthetic report reference 12.0-16.0"
+          }
+        },
+        {
+          "sourceKey": "hematocrit",
+          "originalParameterName": "Hematocrit",
+          "originalValue": "41.0",
+          "unit": "%",
+          "referenceRange": "36-46",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[3]",
+            "textExcerpt": "Hematocrit: 41.0 %; supplied synthetic report reference 36-46"
+          }
+        },
+        {
+          "sourceKey": "mcv",
+          "originalParameterName": "MCV",
+          "originalValue": "90",
+          "unit": "fL",
+          "referenceRange": "80-96",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[4]",
+            "textExcerpt": "MCV: 90 fL; supplied synthetic report reference 80-96"
+          }
+        },
+        {
+          "sourceKey": "mch",
+          "originalParameterName": "MCH",
+          "originalValue": "29.9",
+          "unit": "pg",
+          "referenceRange": "27-33",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[5]",
+            "textExcerpt": "MCH: 29.9 pg; supplied synthetic report reference 27-33"
+          }
+        },
+        {
+          "sourceKey": "mchc",
+          "originalParameterName": "MCHC",
+          "originalValue": "33.2",
+          "unit": "g/dL",
+          "referenceRange": "32-36",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[6]",
+            "textExcerpt": "MCHC: 33.2 g/dL; supplied synthetic report reference 32-36"
+          }
+        },
+        {
+          "sourceKey": "platelets",
+          "originalParameterName": "Platelets",
+          "originalValue": "245",
+          "unit": "G/L",
+          "referenceRange": "150-400",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[7]",
+            "textExcerpt": "Platelets: 245 G/L; supplied synthetic report reference 150-400"
+          }
+        },
+        {
+          "sourceKey": "height",
+          "originalParameterName": "Height",
+          "originalValue": "160",
+          "unit": "cm",
+          "referenceRange": "Not supplied",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[8]",
+            "textExcerpt": "Height: 160 cm; supplied synthetic report reference Not supplied"
+          }
+        },
+        {
+          "sourceKey": "weight",
+          "originalParameterName": "Weight",
+          "originalValue": "45",
+          "unit": "kg",
+          "referenceRange": "Not supplied",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[0].values[9]",
+            "textExcerpt": "Weight: 45 kg; supplied synthetic report reference Not supplied"
+          }
+        }
+      ]
+    },
+    {
+      "sourceKey": "eva-report-2026-06-15",
+      "laboratoryName": "LabDelta Synthetic Laboratory Central",
+      "specimenCollectedAt": "2026-06-15T08:00:00Z",
+      "laboratoryReceivedAt": "2026-06-15T09:00:00Z",
+      "reportReleasedAt": "2026-06-15T12:00:00Z",
+      "revisionNumber": "1",
+      "importedAt": "2026-06-15T16:00:00Z",
+      "values": [
+        {
+          "sourceKey": "leukocytes",
+          "originalParameterName": "Leukocytes",
+          "originalValue": "6.4",
+          "unit": "G/L",
+          "referenceRange": "4.0-10.0",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[0]",
+            "textExcerpt": "Leukocytes: 6.4 G/L; supplied synthetic report reference 4.0-10.0"
+          }
+        },
+        {
+          "sourceKey": "erythrocytes",
+          "originalParameterName": "Erythrocytes",
+          "originalValue": "4.50",
+          "unit": "T/L",
+          "referenceRange": "3.9-5.2",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[1]",
+            "textExcerpt": "Erythrocytes: 4.50 T/L; supplied synthetic report reference 3.9-5.2"
+          }
+        },
+        {
+          "sourceKey": "hemoglobin",
+          "originalParameterName": "Hemoglobin",
+          "originalValue": "13.4",
+          "unit": "g/dL",
+          "referenceRange": "12.0-16.0",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[2]",
+            "textExcerpt": "Hemoglobin: 13.4 g/dL; supplied synthetic report reference 12.0-16.0"
+          }
+        },
+        {
+          "sourceKey": "hematocrit",
+          "originalParameterName": "Hematocrit",
+          "originalValue": "40.5",
+          "unit": "%",
+          "referenceRange": "36-46",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[3]",
+            "textExcerpt": "Hematocrit: 40.5 %; supplied synthetic report reference 36-46"
+          }
+        },
+        {
+          "sourceKey": "mcv",
+          "originalParameterName": "MCV",
+          "originalValue": "90",
+          "unit": "fL",
+          "referenceRange": "80-96",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[4]",
+            "textExcerpt": "MCV: 90 fL; supplied synthetic report reference 80-96"
+          }
+        },
+        {
+          "sourceKey": "mch",
+          "originalParameterName": "MCH",
+          "originalValue": "29.8",
+          "unit": "pg",
+          "referenceRange": "27-33",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[5]",
+            "textExcerpt": "MCH: 29.8 pg; supplied synthetic report reference 27-33"
+          }
+        },
+        {
+          "sourceKey": "mchc",
+          "originalParameterName": "MCHC",
+          "originalValue": "33.1",
+          "unit": "g/dL",
+          "referenceRange": "32-36",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[6]",
+            "textExcerpt": "MCHC: 33.1 g/dL; supplied synthetic report reference 32-36"
+          }
+        },
+        {
+          "sourceKey": "platelets",
+          "originalParameterName": "Platelets",
+          "originalValue": "252",
+          "unit": "G/L",
+          "referenceRange": "150-400",
+          "confirmation": "explicit",
+          "sourceLocation": {
+            "jsonPath": "$.reports[1].values[7]",
+            "textExcerpt": "Platelets: 252 G/L; supplied synthetic report reference 150-400"
+          }
+        }
+      ]
+    }
+  ]
+}

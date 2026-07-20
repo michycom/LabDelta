@@ -131,16 +131,38 @@ fn insert_seed(
                 "INSERT INTO patients (
                     id, display_name, date_of_birth, sex_reference_context,
                     external_identifier, created_at, updated_at
-                 ) VALUES (?1, ?2, ?3, NULL, ?4, ?5, ?5)",
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6)",
                 params![
                     patient_id,
                     fixture.patient.display_name,
                     fixture.patient.date_of_birth,
+                    fixture.patient.sex_reference_context,
                     fixture.patient.external_identifier,
                     patient_timestamp,
                 ],
             )
             .map_err(persistence_error)?;
+
+        for (display_order, profile_id) in fixture.profile_ids.iter().enumerate() {
+            transaction
+                .execute(
+                    "INSERT INTO demo_patient_profiles (
+                        patient_id, profile_id, profile_version, seed_version,
+                        fixture_id, display_order
+                     ) VALUES (?1, ?2, 1, ?3, ?4, ?5)",
+                    params![
+                        patient_id,
+                        profile_id,
+                        seed_version,
+                        entry.fixture_id,
+                        i64::try_from(display_order).map_err(|_| conflict(
+                            seed_version,
+                            "profile display order exceeds SQLite integer range",
+                        ))?,
+                    ],
+                )
+                .map_err(persistence_error)?;
+        }
 
         for report in &fixture.reports {
             let report_id = stable_id(&[
@@ -348,6 +370,40 @@ fn insert_seed(
                         ],
                     )
                     .map_err(persistence_error)?;
+
+                if let Some(measurement) = fixture
+                    .body_measurements
+                    .iter()
+                    .find(|measurement| measurement.source_key == value.source_key)
+                {
+                    let measurement_id = stable_id(&[
+                        seed_version,
+                        entry.fixture_id.as_str(),
+                        "body-measurement",
+                        measurement.source_key.as_str(),
+                    ]);
+                    transaction
+                        .execute(
+                            "INSERT INTO patient_body_measurements (
+                                id, patient_id, measurement_kind, measured_at,
+                                original_value_text, original_unit,
+                                verification_status, original_value_id,
+                                provenance_location_id, recorded_at
+                             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'explicit', ?7, ?8, ?9)",
+                            params![
+                                measurement_id,
+                                patient_id,
+                                measurement.kind,
+                                measurement.measured_at,
+                                measurement.original_value,
+                                measurement.original_unit,
+                                original_value_id,
+                                location_id,
+                                report.imported_at,
+                            ],
+                        )
+                        .map_err(persistence_error)?;
+                }
             }
         }
     }
@@ -422,20 +478,40 @@ fn verify_existing_seed(
             "SELECT EXISTS(
                 SELECT 1 FROM patients
                 WHERE id = ?1 AND display_name = ?2 AND date_of_birth = ?3
-                  AND sex_reference_context IS NULL
-                  AND external_identifier = ?4 AND created_at = ?5
-                  AND updated_at = ?5 AND is_archived = 0
+                  AND sex_reference_context = ?4
+                  AND external_identifier = ?5 AND created_at = ?6
+                  AND updated_at = ?6 AND is_archived = 0
                   AND archived_at IS NULL
              )",
             params![
                 patient_id,
                 fixture.patient.display_name,
                 fixture.patient.date_of_birth,
+                fixture.patient.sex_reference_context,
                 fixture.patient.external_identifier,
                 patient_timestamp,
             ],
             seed_version,
             &format!("patient '{}'", fixture.patient.source_key),
+        )?;
+        ensure_count(
+            transaction,
+            "SELECT COUNT(*) FROM demo_patient_profiles WHERE patient_id = ?1",
+            [&patient_id],
+            fixture.profile_ids.len(),
+            seed_version,
+            &format!("profile count for patient '{}'", fixture.patient.source_key),
+        )?;
+        ensure_count(
+            transaction,
+            "SELECT COUNT(*) FROM patient_body_measurements WHERE patient_id = ?1",
+            [&patient_id],
+            fixture.body_measurements.len(),
+            seed_version,
+            &format!(
+                "body measurement count for patient '{}'",
+                fixture.patient.source_key
+            ),
         )?;
         ensure_count(
             transaction,
@@ -865,17 +941,22 @@ mod tests {
         assert_eq!(count(repository.connection(), "patients"), 3);
         assert_eq!(count(repository.connection(), "laboratory_reports"), 7);
         assert_eq!(count(repository.connection(), "original_documents"), 7);
-        assert_eq!(count(repository.connection(), "provenance_locations"), 14);
-        assert_eq!(count(repository.connection(), "original_values"), 14);
+        assert_eq!(count(repository.connection(), "provenance_locations"), 86);
+        assert_eq!(count(repository.connection(), "original_values"), 86);
         assert_eq!(count(repository.connection(), "extraction_versions"), 7);
-        assert_eq!(count(repository.connection(), "extracted_values"), 14);
+        assert_eq!(count(repository.connection(), "extracted_values"), 86);
         assert_eq!(
             count(repository.connection(), "confirmed_working_values"),
-            14
+            86
         );
         assert_eq!(count(repository.connection(), "demo_seed_runs"), 1);
         assert_eq!(count(repository.connection(), "demo_seed_fixtures"), 3);
         assert_eq!(count(repository.connection(), "demo_seed_documents"), 7);
+        assert_eq!(
+            count(repository.connection(), "patient_body_measurements"),
+            2
+        );
+        assert_eq!(count(repository.connection(), "demo_patient_profiles"), 10);
         let explicit_count = repository
             .connection()
             .query_row(
@@ -885,7 +966,7 @@ mod tests {
                 |row| row.get::<_, i64>(0),
             )
             .expect("explicit working values");
-        assert_eq!(explicit_count, 14);
+        assert_eq!(explicit_count, 86);
         let violations = repository
             .connection()
             .query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |row| {
@@ -908,7 +989,7 @@ mod tests {
         assert_eq!(count(repository.connection(), "laboratory_reports"), 7);
         assert_eq!(
             count(repository.connection(), "confirmed_working_values"),
-            14
+            86
         );
         assert_eq!(count(repository.connection(), "demo_seed_runs"), 1);
     }
@@ -923,7 +1004,7 @@ mod tests {
         let first_ids = seeded_ids(first.connection());
         let second_ids = seeded_ids(second.connection());
         assert_eq!(first_ids, second_ids);
-        assert_eq!(first_ids.len(), 80);
+        assert_eq!(first_ids.len(), 368);
         assert!(first_ids.iter().all(|id| Uuid::parse_str(id).is_ok()));
     }
 
@@ -936,7 +1017,7 @@ mod tests {
             .execute(
                 "UPDATE patients
                  SET display_name = 'Locally changed demo record'
-                 WHERE external_identifier = 'DEMO-001'",
+                 WHERE external_identifier = 'DEMO-EVA'",
                 [],
             )
             .expect("change seeded patient");
@@ -949,7 +1030,7 @@ mod tests {
             .connection()
             .query_row(
                 "SELECT display_name FROM patients
-                 WHERE external_identifier = 'DEMO-001'",
+                 WHERE external_identifier = 'DEMO-EVA'",
                 [],
                 |row| row.get::<_, String>(0),
             )

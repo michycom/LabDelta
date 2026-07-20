@@ -202,12 +202,13 @@ mod tests {
     use crate::domain::{PatientError, PatientInput};
     use crate::migrations::LATEST_SCHEMA_VERSION;
 
-    const PERSISTENCE_TABLES: [&str; 28] = [
+    const PERSISTENCE_TABLES: [&str; 29] = [
         "analysis_contract_input_refs",
         "analysis_contract_rule_refs",
         "analysis_contracts",
         "confirmed_working_values",
         "correction_history",
+        "demo_patient_profiles",
         "demo_seed_documents",
         "demo_seed_fixtures",
         "demo_seed_runs",
@@ -576,6 +577,9 @@ mod tests {
                     | "reference_sources"
                     | "reference_catalogs"
                     | "reference_catalog_parameters"
+                    | "laboratory_parameters"
+                    | "laboratory_profiles"
+                    | "profile_memberships"
             )
         }) {
             assert_eq!(row_count(repository.connection(), table), 0, "{table}");
@@ -608,7 +612,7 @@ mod tests {
     }
 
     #[test]
-    fn catalog_schema_is_empty_versioned_and_referentially_safe() {
+    fn catalog_schema_is_versioned_and_referentially_safe() {
         let directory = tempdir().expect("temporary directory");
         let database_path = directory.path().join("catalog.sqlite3");
         {
@@ -616,17 +620,23 @@ mod tests {
                 PatientRepository::open(&database_path).expect("open catalog database");
             for table in [
                 "rule_definitions",
-                "laboratory_parameters",
                 "parameter_names",
                 "parameter_external_codes",
                 "measurement_units",
                 "unit_conversion_rules",
-                "laboratory_profiles",
-                "profile_memberships",
                 "analysis_contracts",
             ] {
                 assert_eq!(row_count(repository.connection(), table), 0, "{table}");
             }
+            assert_eq!(
+                row_count(repository.connection(), "laboratory_parameters"),
+                18
+            );
+            assert_eq!(row_count(repository.connection(), "laboratory_profiles"), 7);
+            assert_eq!(
+                row_count(repository.connection(), "profile_memberships"),
+                22
+            );
 
             repository
                 .connection()
@@ -668,7 +678,10 @@ mod tests {
         }
 
         let reopened = PatientRepository::open(&database_path).expect("reopen catalog database");
-        assert_eq!(row_count(reopened.connection(), "laboratory_parameters"), 2);
+        assert_eq!(
+            row_count(reopened.connection(), "laboratory_parameters"),
+            20
+        );
         assert_eq!(row_count(reopened.connection(), "parameter_names"), 1);
         assert_no_foreign_key_violations(reopened.connection());
     }

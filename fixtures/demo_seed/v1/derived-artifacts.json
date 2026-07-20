@@ -2,20 +2,20 @@
   "manifestVersion": "1",
   "demoMarker": "LABDELTA_SYNTHETIC_DEMO_V1",
   "generatedFrom": [
-    "elio-morgen.json",
-    "nova-linden.json",
-    "tarin-vale.json"
+    "daniel-power.json",
+    "dirk-mayer.json",
+    "eva-mittel.json"
   ],
   "artifacts": [
     {
       "path": "approved-demo-reports.csv",
       "mediaType": "text/csv",
-      "sha256": "036095a71d13452bcbf13727bb2c52f9523bb216674022e76310241533f20c66"
+      "sha256": "b6a1a6e0b0431b721e83125936e06a02bc0519001bc71db7ee8ad5985e601bd3"
     },
     {
       "path": "approved-demo-reports.pdf",
       "mediaType": "application/pdf",
-      "sha256": "9a0dca4bd9f2e3831ffb9fb41573904eaef64f2dd7b8bc6311292888a1f06c6e"
+      "sha256": "e8e76df56c29de81a35b2e6d19ae61c5a777ebbeb4d3e35da3b8dc931dbb8876"
     }
   ]
 }

@@ -656,14 +656,15 @@ mod tests {
                 .iter()
                 .map(|patient| patient.display_name.as_str())
                 .collect::<Vec<_>>(),
-            ["Elio Morgen", "Nova Linden", "Tarin Vale"]
+            ["Daniel Power", "Dirk Mayer", "Eva Mittel"]
         );
-        let nova = patients
+        let eva = patients
             .iter()
-            .find(|patient| patient.display_name == "Nova Linden")
-            .expect("Nova patient");
-        let details = patient_details(repository.connection(), &nova.id).expect("details");
-        assert_eq!(details.external_identifier.as_deref(), Some("DEMO-001"));
+            .find(|patient| patient.display_name == "Eva Mittel")
+            .expect("Eva patient");
+        let details = patient_details(repository.connection(), &eva.id).expect("details");
+        assert_eq!(details.external_identifier.as_deref(), Some("DEMO-EVA"));
+        assert_eq!(details.sex_reference_context.as_deref(), Some("female"));
         assert!(!details.is_archived);
     }
 
@@ -671,12 +672,12 @@ mod tests {
     fn reads_reports_in_foundation_chronology_order() {
         let repository = seeded_repository();
         let patients = list_patients(repository.connection()).expect("patients");
-        let nova = patients
+        let dirk = patients
             .iter()
-            .find(|patient| patient.display_name == "Nova Linden")
-            .expect("Nova patient");
+            .find(|patient| patient.display_name == "Dirk Mayer")
+            .expect("Dirk patient");
 
-        let reports = laboratory_reports(repository.connection(), &nova.id).expect("reports");
+        let reports = laboratory_reports(repository.connection(), &dirk.id).expect("reports");
 
         assert_eq!(reports.len(), 3);
         assert_eq!(
@@ -685,9 +686,9 @@ mod tests {
                 .map(|report| report.specimen_collected_at.as_deref())
                 .collect::<Vec<_>>(),
             [
-                Some("2025-01-10T08:15:00Z"),
-                Some("2025-03-10T08:20:00Z"),
-                Some("2025-06-10T08:10:00Z")
+                Some("2025-08-05T08:00:00Z"),
+                Some("2026-01-10T08:00:00Z"),
+                Some("2026-06-20T08:00:00Z")
             ]
         );
     }
@@ -696,11 +697,11 @@ mod tests {
     fn reads_only_latest_explicit_values_with_originals_and_provenance() {
         let repository = seeded_repository();
         let patients = list_patients(repository.connection()).expect("patients");
-        let nova = patients
+        let eva = patients
             .iter()
-            .find(|patient| patient.display_name == "Nova Linden")
-            .expect("Nova patient");
-        let report = laboratory_reports(repository.connection(), &nova.id)
+            .find(|patient| patient.display_name == "Eva Mittel")
+            .expect("Eva patient");
+        let report = laboratory_reports(repository.connection(), &eva.id)
             .expect("reports")
             .into_iter()
             .next()
@@ -709,18 +710,18 @@ mod tests {
         let values =
             confirmed_report_values(repository.connection(), &report.id).expect("confirmed values");
 
-        assert_eq!(values.len(), 2);
+        assert_eq!(values.len(), 10);
         assert_eq!(values[0].confirmation_status, ConfirmationStatus::Explicit);
         assert_eq!(
             values[0].confirmed_value,
-            PersistedValue::NumericText("12".to_owned())
+            PersistedValue::NumericText("4.55".to_owned())
         );
-        assert_eq!(values[0].original.parameter_name, "Demo-Marker Alpha");
-        assert_eq!(values[0].original.value_text, "12");
-        assert_eq!(values[0].original.unit.as_deref(), Some("demo-unit-A"));
+        assert_eq!(values[0].original.parameter_name, "Erythrocytes");
+        assert_eq!(values[0].original.value_text, "4.55");
+        assert_eq!(values[0].original.unit.as_deref(), Some("T/L"));
         assert_eq!(
             values[0].original.supplied_reference_range.as_deref(),
-            Some("10–20")
+            Some("3.9-5.2")
         );
         assert!(matches!(
             values[0].provenance.locator,
@@ -728,7 +729,7 @@ mod tests {
         ));
         assert_eq!(
             values[0].original.document.original_file_name,
-            "nova-linden.json"
+            "eva-mittel.json"
         );
         let command_payload = serde_json::to_value(&values[0]).expect("command JSON payload");
         assert_eq!(command_payload["confirmationStatus"], "explicit");
@@ -736,7 +737,7 @@ mod tests {
         assert_eq!(command_payload["provenance"]["locator"]["kind"], "jsonPath");
         assert_eq!(
             command_payload["provenance"]["locator"]["path"],
-            "$.reports[0].values[0]"
+            "$.reports[0].values[1]"
         );
     }
 

@@ -6,7 +6,7 @@ use thiserror::Error;
 
 pub(crate) const DEMO_MARKER: &str = "LABDELTA_SYNTHETIC_DEMO_V1";
 const SUPPORTED_MANIFEST_VERSION: &str = "1";
-const SUPPORTED_FIXTURE_SCHEMA_VERSION: &str = "1";
+const SUPPORTED_FIXTURE_SCHEMA_VERSION: &str = "2";
 const MANIFEST_JSON: &str = include_str!("../../fixtures/demo_seed/v1/manifest.json");
 const DERIVED_ARTIFACTS_JSON: &str =
     include_str!("../../fixtures/demo_seed/v1/derived-artifacts.json");
@@ -39,16 +39,16 @@ struct EmbeddedArtifact<'a> {
 
 const EMBEDDED_SOURCES: &[EmbeddedSource<'static>] = &[
     EmbeddedSource {
-        path: "elio-morgen.json",
-        content: include_str!("../../fixtures/demo_seed/v1/elio-morgen.json"),
+        path: "daniel-power.json",
+        content: include_str!("../../fixtures/demo_seed/v1/daniel-power.json"),
     },
     EmbeddedSource {
-        path: "nova-linden.json",
-        content: include_str!("../../fixtures/demo_seed/v1/nova-linden.json"),
+        path: "dirk-mayer.json",
+        content: include_str!("../../fixtures/demo_seed/v1/dirk-mayer.json"),
     },
     EmbeddedSource {
-        path: "tarin-vale.json",
-        content: include_str!("../../fixtures/demo_seed/v1/tarin-vale.json"),
+        path: "eva-mittel.json",
+        content: include_str!("../../fixtures/demo_seed/v1/eva-mittel.json"),
     },
 ];
 
@@ -111,6 +111,8 @@ pub(crate) struct DemoFixture {
     pub demo_marker: String,
     pub source_notice: String,
     pub patient: FixturePatient,
+    pub body_measurements: Vec<FixtureBodyMeasurement>,
+    pub profile_ids: Vec<String>,
     pub reports: Vec<FixtureReport>,
 }
 
@@ -120,7 +122,19 @@ pub(crate) struct FixturePatient {
     pub source_key: String,
     pub display_name: String,
     pub date_of_birth: String,
+    pub sex_reference_context: String,
     pub external_identifier: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct FixtureBodyMeasurement {
+    pub source_key: String,
+    pub kind: String,
+    pub measured_at: String,
+    pub original_value: String,
+    pub original_unit: String,
+    pub verification: ConfirmationKind,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -363,10 +377,38 @@ fn validate_fixture(entry: &ManifestFixture, fixture: &DemoFixture) -> Result<()
         || fixture.patient.source_key.trim().is_empty()
         || fixture.patient.display_name.trim().is_empty()
         || fixture.patient.date_of_birth.trim().is_empty()
+        || !matches!(
+            fixture.patient.sex_reference_context.as_str(),
+            "female" | "male"
+        )
         || fixture.patient.external_identifier.trim().is_empty()
+        || fixture.profile_ids.is_empty()
         || fixture.reports.is_empty()
     {
         return Err(invalid("required fixture content is missing"));
+    }
+
+    let mut measurement_keys = HashSet::new();
+    for measurement in &fixture.body_measurements {
+        if !measurement_keys.insert(measurement.source_key.as_str())
+            || !matches!(measurement.kind.as_str(), "height" | "weight")
+            || measurement.measured_at.trim().is_empty()
+            || measurement.original_value.trim().is_empty()
+            || measurement.original_unit.trim().is_empty()
+            || measurement.verification != ConfirmationKind::Explicit
+        {
+            return Err(invalid(
+                "body measurements must be complete, explicit, and unique",
+            ));
+        }
+    }
+    let mut profile_ids = HashSet::new();
+    if fixture
+        .profile_ids
+        .iter()
+        .any(|profile_id| profile_id.trim().is_empty() || !profile_ids.insert(profile_id))
+    {
+        return Err(invalid("profile IDs must be complete and unique"));
     }
 
     let mut report_keys = HashSet::new();
@@ -426,7 +468,7 @@ mod tests {
         let approved = approved_fixtures().expect("approved embedded fixtures");
 
         assert_eq!(approved.manifest.manifest_version, "1");
-        assert_eq!(approved.manifest.seed_version, "contest-demo-v1");
+        assert_eq!(approved.manifest.seed_version, "contest-demo-v2");
         assert_eq!(approved.fixtures.len(), 3);
         assert_eq!(
             approved
@@ -461,20 +503,20 @@ mod tests {
 
     #[test]
     fn rejects_a_manipulated_fixture_fail_closed() {
-        let source = include_str!("../../fixtures/demo_seed/v1/elio-morgen.json");
-        let manipulated = source.replace("Elio Morgen", "Elio Changed");
+        let source = include_str!("../../fixtures/demo_seed/v1/daniel-power.json");
+        let manipulated = source.replace("Daniel Power", "Daniel Changed");
         let sources = [
             EmbeddedSource {
-                path: "elio-morgen.json",
+                path: "daniel-power.json",
                 content: &manipulated,
             },
             EmbeddedSource {
-                path: "nova-linden.json",
-                content: include_str!("../../fixtures/demo_seed/v1/nova-linden.json"),
+                path: "dirk-mayer.json",
+                content: include_str!("../../fixtures/demo_seed/v1/dirk-mayer.json"),
             },
             EmbeddedSource {
-                path: "tarin-vale.json",
-                content: include_str!("../../fixtures/demo_seed/v1/tarin-vale.json"),
+                path: "eva-mittel.json",
+                content: include_str!("../../fixtures/demo_seed/v1/eva-mittel.json"),
             },
         ];
 
@@ -486,7 +528,7 @@ mod tests {
 
     #[test]
     fn rejects_a_manifest_path_that_is_not_embedded() {
-        let changed_manifest = MANIFEST_JSON.replace("elio-morgen.json", "unknown.json");
+        let changed_manifest = MANIFEST_JSON.replace("daniel-power.json", "unknown.json");
 
         assert!(matches!(
             validate_fixture_set(&changed_manifest, super::EMBEDDED_SOURCES),
