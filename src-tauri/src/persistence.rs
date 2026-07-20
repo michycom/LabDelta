@@ -202,7 +202,7 @@ mod tests {
     use crate::domain::{PatientError, PatientInput};
     use crate::migrations::LATEST_SCHEMA_VERSION;
 
-    const PERSISTENCE_TABLES: [&str; 25] = [
+    const PERSISTENCE_TABLES: [&str; 28] = [
         "analysis_contract_input_refs",
         "analysis_contract_rule_refs",
         "analysis_contracts",
@@ -225,6 +225,9 @@ mod tests {
         "patients",
         "profile_memberships",
         "provenance_locations",
+        "reference_catalog_parameters",
+        "reference_catalogs",
+        "reference_sources",
         "rule_definitions",
         "schema_migrations",
         "unit_conversion_rules",
@@ -565,11 +568,16 @@ mod tests {
         repository
             .delete(&patient.id)
             .expect("delete patient graph");
-        for table in PERSISTENCE_TABLES
-            .iter()
-            .copied()
-            .filter(|table| !matches!(*table, "schema_migrations" | "patients"))
-        {
+        for table in PERSISTENCE_TABLES.iter().copied().filter(|table| {
+            !matches!(
+                *table,
+                "schema_migrations"
+                    | "patients"
+                    | "reference_sources"
+                    | "reference_catalogs"
+                    | "reference_catalog_parameters"
+            )
+        }) {
             assert_eq!(row_count(repository.connection(), table), 0, "{table}");
         }
         assert_no_foreign_key_violations(repository.connection());
@@ -663,6 +671,40 @@ mod tests {
         assert_eq!(row_count(reopened.connection(), "laboratory_parameters"), 2);
         assert_eq!(row_count(reopened.connection(), "parameter_names"), 1);
         assert_no_foreign_key_violations(reopened.connection());
+    }
+
+    #[test]
+    fn reference_sources_keep_report_default_and_future_catalogs_disabled() {
+        let repository = PatientRepository::in_memory().expect("in-memory repository");
+        let sources = crate::read_model::list_reference_sources(repository.connection())
+            .expect("reference sources");
+
+        assert_eq!(sources.len(), 5);
+        assert_eq!(sources[0].id, "report-reference");
+        assert!(sources[0].is_default);
+        assert!(!sources[0].demonstration_only);
+        let demo = sources
+            .iter()
+            .find(|source| source.id == "demo-reference-catalog")
+            .expect("demo reference source");
+        assert!(!demo.is_default);
+        assert!(demo.demonstration_only);
+        assert_eq!(
+            sources
+                .iter()
+                .filter(|source| matches!(
+                    source.availability,
+                    crate::domain::ReferenceSourceAvailability::FutureDisabled
+                ))
+                .count(),
+            3
+        );
+        assert_eq!(row_count(repository.connection(), "reference_catalogs"), 1);
+        assert_eq!(
+            row_count(repository.connection(), "reference_catalog_parameters"),
+            0
+        );
+        assert_no_foreign_key_violations(repository.connection());
     }
 
     #[test]

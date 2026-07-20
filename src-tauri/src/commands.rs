@@ -5,7 +5,7 @@ use tauri::State;
 
 use crate::domain::{
     ConfirmedReportValue, LaboratoryReportSummary, PatientDetails, PatientId, PatientSummary,
-    ReportId,
+    ReferenceSource, ReportId,
 };
 use crate::persistence::PatientRepository;
 use crate::read_model::{self, ReadError};
@@ -61,6 +61,14 @@ impl From<ReadError> for CommandError {
 pub fn list_patients(store: State<'_, PatientStore>) -> Result<Vec<PatientSummary>, CommandError> {
     let repository = store.repository()?;
     read_model::list_patients(repository.connection()).map_err(Into::into)
+}
+
+#[tauri::command]
+pub fn list_reference_sources(
+    store: State<'_, PatientStore>,
+) -> Result<Vec<ReferenceSource>, CommandError> {
+    let repository = store.repository()?;
+    read_model::list_reference_sources(repository.connection()).map_err(Into::into)
 }
 
 #[tauri::command]

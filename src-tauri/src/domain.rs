@@ -79,6 +79,37 @@ pub struct LaboratoryReportSummary {
     pub imported_at: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ReferenceSourceKind {
+    Report,
+    DemoCatalog,
+    Ifcc,
+    Dgkl,
+    LocalLaboratory,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ReferenceSourceAvailability {
+    Active,
+    FutureDisabled,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReferenceSource {
+    pub id: String,
+    pub version: u32,
+    pub kind: ReferenceSourceKind,
+    pub display_name: String,
+    pub description: String,
+    pub availability: ReferenceSourceAvailability,
+    pub is_default: bool,
+    pub demonstration_only: bool,
+    pub source_notice: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "value", rename_all = "camelCase")]
 pub enum PersistedValue {

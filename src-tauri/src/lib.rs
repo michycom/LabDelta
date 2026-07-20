@@ -11,7 +11,7 @@ use std::io;
 
 use commands::{
     get_patient_details, list_confirmed_report_values, list_laboratory_reports, list_patients,
-    PatientStore,
+    list_reference_sources, PatientStore,
 };
 use persistence::PatientRepository;
 use tauri::Manager;
@@ -31,6 +31,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             list_patients,
+            list_reference_sources,
             get_patient_details,
             list_laboratory_reports,
             list_confirmed_report_values

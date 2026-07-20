@@ -5,8 +5,75 @@ use crate::domain::{
     ConfirmationStatus, ConfirmedReportValue, ExtractionVersionId, IdentifierError,
     LaboratoryReportSummary, OriginalDocumentId, OriginalDocumentReference, OriginalValueId,
     OriginalValueReference, PatientDetails, PatientId, PatientSummary, PersistedValue,
-    ProvenanceLocationId, ProvenanceLocator, ProvenanceReference, ReportId, WorkingValueId,
+    ProvenanceLocationId, ProvenanceLocator, ProvenanceReference, ReferenceSource,
+    ReferenceSourceAvailability, ReferenceSourceKind, ReportId, WorkingValueId,
 };
+
+pub(crate) fn list_reference_sources(
+    connection: &Connection,
+) -> Result<Vec<ReferenceSource>, ReadError> {
+    let mut statement = connection
+        .prepare(
+            "SELECT id, version, source_kind, display_name, description,
+                    availability, is_default, demonstration_only, source_notice
+             FROM reference_sources
+             ORDER BY is_default DESC, availability, display_name, version",
+        )
+        .map_err(persistence_error)?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, u32>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, bool>(6)?,
+                row.get::<_, bool>(7)?,
+                row.get::<_, String>(8)?,
+            ))
+        })
+        .map_err(persistence_error)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(persistence_error)?;
+    rows.into_iter()
+        .map(|row| {
+            let kind = match row.2.as_str() {
+                "report" => ReferenceSourceKind::Report,
+                "demo_catalog" => ReferenceSourceKind::DemoCatalog,
+                "ifcc" => ReferenceSourceKind::Ifcc,
+                "dgkl" => ReferenceSourceKind::Dgkl,
+                "local_laboratory" => ReferenceSourceKind::LocalLaboratory,
+                value => return Err(invalid_reference_source(&row.0, "source kind", value)),
+            };
+            let availability = match row.5.as_str() {
+                "active" => ReferenceSourceAvailability::Active,
+                "future_disabled" => ReferenceSourceAvailability::FutureDisabled,
+                value => return Err(invalid_reference_source(&row.0, "availability", value)),
+            };
+            Ok(ReferenceSource {
+                id: row.0,
+                version: row.1,
+                kind,
+                display_name: row.3,
+                description: row.4,
+                availability,
+                is_default: row.6,
+                demonstration_only: row.7,
+                source_notice: row.8,
+            })
+        })
+        .collect()
+}
+
+fn invalid_reference_source(id: &str, field: &str, value: &str) -> ReadError {
+    ReadError::InvalidStoredData {
+        entity: "reference source",
+        id: id.to_owned(),
+        reason: format!("unsupported {field} '{value}'"),
+    }
+}
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub(crate) enum ReadError {
