@@ -1,12 +1,16 @@
-import { Activity, Database, FileInput, Files, LayoutDashboard, Users } from "lucide-react";
+import { Activity, BarChart3, Database, FileInput, FileSearch, Files, History, Layers3, LayoutDashboard, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import type { AppSection } from "../types";
 import { DemoBanner } from "./DemoDisclaimer";
 
 const navigation = [
   ["Dashboard", LayoutDashboard, "dashboard"],
+  ["Analysis Overview", BarChart3, "analysis"],
   ["Patients", Users, "patients"],
   ["Reports", Files, "reports"],
+  ["Profiles", Layers3, "profiles"],
+  ["History", History, "history"],
+  ["Original Document", FileSearch, "originalDocument"],
   ["Provenance", Database, "provenance"],
   ["Import", FileInput, "import"]
 ] as const;

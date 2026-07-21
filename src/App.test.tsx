@@ -167,8 +167,9 @@ describe("persisted synthetic demo flow", () => {
     expect(screen.getAllByText("6.2").length).toBeGreaterThan(0);
     expect(screen.getAllByText("G/L").length).toBeGreaterThan(0);
     expect(screen.getAllByText("4.0-10.0").length).toBeGreaterThan(0);
-    expect(screen.getByText("JSON path: $.reports[0].values[0]")).toBeInTheDocument();
-    expect(screen.getAllByText("Source: eva-mittel.json").length).toBeGreaterThan(0);
+    expect(screen.getByText("JSON path: $.reports[0].values[0]")).toHaveClass("technical-path");
+    expect(screen.getByText("Eva Mittel – Laboratory Report")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open in Original Document" })).toBeInTheDocument();
     expect(screen.getByText(/height: 160 cm \(explicit\)/)).toBeInTheDocument();
     expect(screen.getByText(/Small Blood Count/)).toBeInTheDocument();
     expect(screen.getByText(/General Health/)).toBeInTheDocument();
@@ -274,13 +275,38 @@ describe("persisted synthetic demo flow", () => {
     render(<App />);
     const dirkRow = await screen.findByRole("link", { name: /Dirk Mayer/ });
     expect(screen.queryByText("Creatinine")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Alle Veränderungen anzeigen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show all changes" }));
     expect(screen.getByText("Creatinine")).toBeInTheDocument();
     expect(screen.getByText("Platelets")).toBeInTheDocument();
     expect(screen.getByText("Lipid Profile")).toBeInTheDocument();
     fireEvent.click(dirkRow);
     await waitFor(() => expect(patientApi.getPatientDetails).toHaveBeenCalledWith("dirk"));
     expect(screen.getByRole("button", { name: "Reports" })).toHaveClass("active");
+  });
+
+  it("localizes the change expansion labels with the existing demo language", async () => {
+    render(<App />);
+    await screen.findByRole("heading", { name: "Dashboard – Auffällige Veränderungen" });
+    expect(screen.getAllByRole("button", { name: "Show all changes" }).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "DE" }));
+    expect(screen.getAllByRole("button", { name: "Alle Veränderungen anzeigen" }).length).toBeGreaterThan(0);
+  });
+
+  it("keeps patient overview and analysis as separate sidebar destinations", async () => {
+    render(<App />);
+    await screen.findByRole("heading", { name: "Dashboard – Auffällige Veränderungen" });
+    expect(document.querySelector('[data-demo-target="dashboard-patient-table"]')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Analysis Overview" }));
+    expect(document.querySelector('[data-demo-target="analysis-dashboard"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-demo-target="dashboard-patient-table"]')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Dashboard" }));
+    expect(document.querySelector('[data-demo-target="dashboard-patient-table"]')).toBeInTheDocument();
+  });
+
+  it("renders the permanent product navigation in the requested order", () => {
+    render(<App />);
+    const labels = Array.from(screen.getByRole("navigation", { name: "Primary navigation" }).querySelectorAll("button"), button => button.textContent);
+    expect(labels).toEqual(["Dashboard", "Analysis Overview", "Patients", "Reports", "Profiles", "History", "Original Document", "Provenance", "Import"]);
   });
 
   it("opens only the disabled-import information view", async () => {
@@ -301,7 +327,7 @@ describe("persisted synthetic demo flow", () => {
     expect(screen.getAllByText(/Laboratory data is often distributed/).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Previous demo step" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Next demo step" }));
-    expect(screen.getByText(/dashboard reads three synthetic patients/)).toBeInTheDocument();
+    expect(screen.getByText(/dashboard is the compact starting point/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Previous demo step" }));
     expect(screen.getByRole("heading", { name: "Transparent longitudinal laboratory data" })).toBeInTheDocument();
 

@@ -56,6 +56,19 @@ function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; seq
   }, [demoPatients, selectDemoPatient, selectedDemoPatientId, walkthrough.state.playback, walkthrough.step]);
 
   useEffect(() => {
+    const targetBySection: Partial<Record<AppSection, string>> = {
+      profiles: "profile-overview",
+      history: "parameter-history",
+      originalDocument: "original-document",
+      provenance: "provenance"
+    };
+    const target = targetBySection[activeSection];
+    if (!target) return;
+    const timer = window.setTimeout(() => document.querySelector<HTMLElement>(`[data-demo-target="${target}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 180);
+    return () => window.clearTimeout(timer);
+  }, [activeSection, demoData.selectedReportId]);
+
+  useEffect(() => {
     if (!nativeAction) return;
     const section = sectionForMenuAction(nativeAction.id);
     if (section) setActiveSection(section);
@@ -98,10 +111,10 @@ function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; seq
       onOpenPatients={() => setActiveSection("patients")}
       onSelectReferenceSource={demoData.selectReferenceSource}
     />
-    {activeSection === "dashboard" ? <DashboardOverview selectedPatientId={demoData.selectedPatientId} revealValueDetailForPatient={walkthrough.step.revealValueDetail && (walkthrough.state.playback === "playing" || walkthrough.state.playback === "paused") ? walkthrough.step.patientName ?? null : null} onOpenPatient={patientId => {
+    {activeSection === "dashboard" || activeSection === "analysis" ? <DashboardOverview language={walkthrough.state.language} mode={activeSection === "analysis" ? "analysis" : "patients"} selectedPatientId={demoData.selectedPatientId} revealValueDetailForPatient={walkthrough.step.revealValueDetail && (walkthrough.state.playback === "playing" || walkthrough.state.playback === "paused") ? walkthrough.step.patientName ?? null : null} onOpenPatient={patientId => {
       demoData.selectPatient(patientId);
       setActiveSection("reports");
-    }} /> : activeSection === "reports" ? <DemoDataWorkspace
+    }} /> : ["reports", "profiles", "history", "originalDocument", "provenance"].includes(activeSection) ? <DemoDataWorkspace
       patients={demoData.patients}
       selectedPatient={demoData.selectedPatient}
       patientDetails={demoData.patientDetails}
@@ -127,7 +140,7 @@ function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; seq
         demoData.selectPatient(patientId);
         setActiveSection("reports");
       }}
-    /> : <InformationView patient={demoData.selectedPatient} section={activeSection} />}
+    /> : <InformationView patient={demoData.selectedPatient} section={activeSection as Exclude<AppSection, "dashboard" | "analysis" | "patients" | "reports" | "profiles" | "history" | "originalDocument" | "provenance">} />}
     <footer><strong>Research and demonstration project.</strong> Not clinically validated and not released for medical use. No diagnosis, prognosis, treatment, test, or therapy recommendation. Synthetic source documents remain authoritative for this demonstration.</footer>
     <DemoWalkthroughControls
       language={walkthrough.state.language}
@@ -147,11 +160,11 @@ function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; seq
   </Shell>;
 }
 
-function InformationView({ section, patient }: { section: Exclude<AppSection, "dashboard" | "patients" | "reports">; patient: PatientListItem | null }) {
+function InformationView({ section, patient }: { section: Exclude<AppSection, "dashboard" | "analysis" | "patients" | "reports" | "profiles" | "history" | "originalDocument" | "provenance">; patient: PatientListItem | null }) {
   if (section === "import") return <ImportInformationView patient={patient} />;
   if (section === "about") return <section className="information-view"><span className="section-kicker">LabDelta Contest Demo</span><h1>About LabDelta</h1><p>Local-first research and demonstration software using only approved synthetic fixtures.</p></section>;
   if (section === "limitations") return <section className="information-view"><span className="section-kicker">Demo Data and Limitations</span><h1>Contest Demo limitations</h1><p>No clinical validation, medical interpretation, diagnosis, therapy, general import, cloud, telemetry, or runtime AI.</p></section>;
   if (section === "documentation") return <section className="information-view"><span className="section-kicker">Local documentation</span><h1>Project Documentation</h1><p>The binding project, acceptance, reference catalog, and fixture documentation is stored locally in the docs directory.</p></section>;
   if (section === "fixtures") return <section className="information-view"><span className="section-kicker">Approved local data</span><h1>About Synthetic Fixtures</h1><p>Eva Mittel, Dirk Mayer, and Daniel Power are fully synthetic, deterministic Contest Demo patients.</p></section>;
-  return <section className="information-view"><span className="section-kicker">Stored source metadata</span><h1>Provenance</h1><p>Open a patient report to inspect its approved synthetic source document, original label, locator, and excerpt.</p><button className="outline-button" type="button">Read-only synthetic provenance</button></section>;
+  return null;
 }

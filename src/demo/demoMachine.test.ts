@@ -3,9 +3,10 @@ import { demoReducer, INITIAL_DEMO_STATE } from "./demoMachine";
 import { DEMO_STEPS } from "./walkthrough";
 
 describe("demo walkthrough state machine", () => {
-  it("defines the requested ten deterministic steps", () => {
-    expect(DEMO_STEPS).toHaveLength(10);
-    expect(DEMO_STEPS.map(step => step.id)).toEqual(["introduction", "dashboard", "dirk-mayer", "comparison", "why", "profiles", "history", "provenance", "import-boundary", "conclusion"]);
+  it("defines ten deterministic chapters with individual screen parts", () => {
+    expect([...new Set(DEMO_STEPS.map(step => step.chapter))]).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(DEMO_STEPS.map(step => step.id)).toContain("dashboard-trends");
+    expect(DEMO_STEPS.map(step => step.id)).toContain("analysis-change");
   });
 
   it("plays, pauses, resumes, stops, and restarts without hidden transitions", () => {
@@ -21,7 +22,7 @@ describe("demo walkthrough state machine", () => {
   it("completes after the final step and changes language independently", () => {
     const finalStep = { ...INITIAL_DEMO_STATE, playback: "playing" as const, stepIndex: DEMO_STEPS.length - 1 };
     expect(demoReducer(finalStep, { type: "advance" }).playback).toBe("completed");
-    expect(demoReducer(finalStep, { type: "setLanguage", language: "de" })).toMatchObject({ language: "de", stepIndex: 9 });
+    expect(demoReducer(finalStep, { type: "setLanguage", language: "de" })).toMatchObject({ language: "de", stepIndex: DEMO_STEPS.length - 1 });
   });
 
   it("moves exactly one step and remains inside the sequence", () => {
