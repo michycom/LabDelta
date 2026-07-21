@@ -248,7 +248,7 @@ describe("persisted synthetic demo flow", () => {
 
   it("loads exactly the three approved dashboard patients in Rust order", async () => {
     render(<App />);
-    expect(await screen.findByRole("heading", { name: "Laborwerte im Verlauf" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Dashboard – Auffällige Veränderungen" })).toBeInTheDocument();
     const patientRows = screen.getAllByRole("link");
     expect(patientRows.map(row => row.textContent)).toEqual([expect.stringContaining("Dirk Mayer"), expect.stringContaining("Daniel Power"), expect.stringContaining("Eva Mittel")]);
     expect(patientApi.getDashboard).toHaveBeenCalledWith("all");
@@ -261,8 +261,8 @@ describe("persisted synthetic demo flow", () => {
 
   it("requests deterministic dashboard filters from the Rust core", async () => {
     render(<App />);
-    await screen.findByRole("heading", { name: "Laborwerte im Verlauf" });
-    fireEvent.click(screen.getByRole("button", { name: /Auffällig/ }));
+    await screen.findByRole("heading", { name: "Dashboard – Auffällige Veränderungen" });
+    fireEvent.click(screen.getByRole("button", { name: /^Auffällig/ }));
     await waitFor(() => expect(patientApi.getDashboard).toHaveBeenCalledWith("outsideReference"));
     fireEvent.click(screen.getByRole("button", { name: /Deutlich verändert/ }));
     await waitFor(() => expect(patientApi.getDashboard).toHaveBeenCalledWith("changed"));
@@ -274,7 +274,7 @@ describe("persisted synthetic demo flow", () => {
     render(<App />);
     const dirkRow = await screen.findByRole("link", { name: /Dirk Mayer/ });
     expect(screen.queryByText("Creatinine")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Alle 6 anzeigen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Alle Veränderungen anzeigen" }));
     expect(screen.getByText("Creatinine")).toBeInTheDocument();
     expect(screen.getByText("Platelets")).toBeInTheDocument();
     expect(screen.getByText("Lipid Profile")).toBeInTheDocument();
@@ -294,7 +294,7 @@ describe("persisted synthetic demo flow", () => {
 
   it("controls the real walkthrough with subtitles and language selection", async () => {
     render(<App />);
-    await screen.findByRole("heading", { name: "Laborwerte im Verlauf" });
+    await screen.findByRole("heading", { name: "Dashboard – Auffällige Veränderungen" });
 
     fireEvent.click(screen.getByRole("button", { name: "Play demo" }));
     expect(screen.getByRole("heading", { name: "Transparent longitudinal laboratory data" })).toBeInTheDocument();

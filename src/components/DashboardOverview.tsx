@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowRight, ArrowUp, Database, Minus, RefreshCw, X } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUp, Minus, RefreshCw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getDashboard } from "../api/patients";
 import { parameterAnchorKey } from "../data/syntheticDocument";
@@ -12,7 +12,7 @@ const filters: Array<[DashboardFilter, string]> = [
   ["changed", "Deutlich verändert"],
   ["longitudinalData", "Mit Langzeittrend"]
 ];
-const initiallyVisibleChanges = 4;
+const initiallyVisibleChanges = 3;
 
 function message(error: unknown) {
   return typeof error === "object" && error !== null && "message" in error ? String(error.message) : String(error);
@@ -61,18 +61,14 @@ export function DashboardOverview({ onOpenPatient, revealValueDetailForPatient, 
   if (error) return <DashboardState error text={error} action={() => setReload(value => value + 1)} />;
 
   return <section className="contest-dashboard patient-overview" data-demo-target="dashboard">
-    <CollapsiblePanel demoTarget="dashboard-overview" storageKey="dashboard" subtitle="Approved synthetic patients from local SQLite" title="Patientenübersicht">
-      <div className="dashboard-heading">
-        <div><span className="section-kicker"><Database size={15} /> Contest dashboard</span><h1>Laborwerte im Verlauf</h1><p>Übersicht aller freigegebenen synthetischen Patientendaten.</p></div>
-      </div>
+    <CollapsiblePanel demoTarget="dashboard-overview" storageKey="dashboard" subtitle="Überblick über alle Patienten" title="Dashboard – Auffällige Veränderungen">
       <div className="dashboard-toolbar">
         <div className="dashboard-filters" data-demo-target="dashboard-filters" aria-label="Dashboard filters">{filters.map(([id, label]) => <button aria-pressed={filter === id} className={filter === id ? "selected" : ""} key={id} onClick={() => setFilter(id)} type="button">{label}<b>{dashboards[id]?.patients.length ?? 0}</b></button>)}</div>
-        <p className="sort-note"><strong>Deterministische Sortierung:</strong> {dashboard?.sortExplanation}</p>
       </div>
       {!dashboard?.patients.length ? <DashboardState compact text="Keine freigegebenen Demo-Patienten entsprechen diesem Filter." /> : <div className="patient-overview-table-wrap" data-demo-target="dashboard-patient-table">
         <table className="patient-overview-table">
           <colgroup><col /><col /><col /><col /><col /><col /></colgroup>
-          <thead><tr><th>Patient</th><th>Letzter Bericht</th><th>Auffällige / deutlich veränderte Werte</th><th>Betroffene Laborprofile (Anzahl)</th><th>Auffällige Veränderungen</th><th>Trend-Zusammenfassung</th></tr></thead>
+          <thead><tr><th>Patient</th><th>Letzter Bericht</th><th>Auffällige / deutlich veränderte Werte</th><th>Betroffene Laborprofile</th><th>Wichtigste Veränderungen</th><th>Trend-Zusammenfassung</th></tr></thead>
           <tbody>{dashboard.patients.map(patient => <PatientRow expanded={expandedPatients.has(patient.id)} isSelected={patient.id === selectedPatientId} key={patient.id} onOpenPatient={onOpenPatient} onSelectValue={setSelectedValue} onToggleExpanded={toggleExpanded} patient={patient} />)}</tbody>
         </table>
       </div>}
@@ -83,19 +79,27 @@ export function DashboardOverview({ onOpenPatient, revealValueDetailForPatient, 
 }
 
 function PatientRow({ patient, expanded, isSelected, onOpenPatient, onSelectValue, onToggleExpanded }: { patient: DashboardPatient; expanded: boolean; isSelected: boolean; onOpenPatient: (patientId: string) => void; onSelectValue: (value: DashboardValueDetail) => void; onToggleExpanded: (patientId: string) => void }) {
-  const outsideCount = patient.referenceCounts.below + patient.referenceCounts.above;
   const affectedProfiles = patient.profiles.filter(profile => profile.outsideReferenceCount > 0 || patient.highlights.some(value => value.profileTags.includes(profile.name)));
   const visibleChanges = expanded ? patient.highlights : patient.highlights.slice(0, initiallyVisibleChanges);
   const trends = countDirections(patient.highlights);
   const openPatient = () => onOpenPatient(patient.id);
   return <tr className={isSelected ? "selected-patient-row" : ""} data-demo-target={patient.displayName === "Dirk Mayer" ? "patient-dirk-mayer" : undefined} onClick={openPatient} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") openPatient(); }} role="link" tabIndex={0}>
-    <td><div className="overview-patient"><span className="overview-avatar">{patient.displayName.split(" ").map(part => part[0]).join("")}</span><span><strong>{patient.displayName}</strong><small>{patient.reportCount} Berichte · {patient.confirmedValueCount} bestätigte Werte</small></span><ArrowRight size={15} /></div></td>
-    <td><strong>{patient.latestReportDate.slice(0, 10)}</strong><small>Neuester Bericht</small></td>
-    <td><div className="overview-count"><strong>{outsideCount}</strong><span>außerhalb Referenz</span><b>{patient.highlights.length}</b><span>relevante Veränderungen</span></div></td>
-    <td>{affectedProfiles.length ? <><div className="affected-profile-list">{affectedProfiles.map(profile => <span key={`${profile.id}-${profile.version}`}>{profile.name}<small>v{profile.version}</small></span>)}</div><b className="profile-count">{affectedProfiles.length}</b></> : <span className="insufficient-history">Keine außerhalb Referenz</span>}</td>
-    <td><div className="overview-changes">{visibleChanges.length ? visibleChanges.map(value => <button data-parameter-key={parameterAnchorKey(value.originalParameterName)} key={value.workingValueId} onClick={event => { event.stopPropagation(); onSelectValue(value); }} type="button"><StatusDot status={value.referenceStatus} /><strong>{value.parameterName}</strong><span><Direction value={value.direction} /> {changeAmount(value)}</span></button>) : <span className="insufficient-history">Keine relevante mathematische Veränderung</span>}{patient.highlights.length > initiallyVisibleChanges ? <button className="show-all-changes" onClick={event => { event.stopPropagation(); onToggleExpanded(patient.id); }} type="button">{expanded ? "Weniger anzeigen" : `Alle ${patient.highlights.length} anzeigen`}</button> : null}</div></td>
+    <td><div className="overview-patient"><i aria-hidden="true" className="patient-status-dot" /><span><strong>{patient.displayName}</strong><small>{patient.reportCount} Berichte</small></span><ArrowRight size={15} /></div></td>
+    <td><strong>{formatReportDate(patient.latestReportDate)}</strong></td>
+    <td><div className="overview-count"><strong>{patient.highlights.length} / {assessableCount(patient)}</strong><span>Auffällige Werte</span></div></td>
+    <td>{affectedProfiles.length ? <div className="affected-profile-list"><span>{affectedProfiles.map(profile => profile.name).join(", ")} <b>({affectedProfiles.length})</b></span></div> : <span className="insufficient-history">Keine betroffenen Profile</span>}</td>
+    <td><div className="overview-changes">{visibleChanges.length ? visibleChanges.map(value => <button data-parameter-key={parameterAnchorKey(value.originalParameterName)} key={value.workingValueId} onClick={event => { event.stopPropagation(); onSelectValue(value); }} type="button"><StatusDot status={value.referenceStatus} /><strong>{value.parameterName}</strong><span><Direction value={value.direction} /> {changeAmount(value)}</span></button>) : <span className="insufficient-history">Keine relevante mathematische Veränderung</span>}{patient.highlights.length > initiallyVisibleChanges ? <button className="show-all-changes" onClick={event => { event.stopPropagation(); onToggleExpanded(patient.id); }} type="button">{expanded ? "Weniger anzeigen" : "Alle Veränderungen anzeigen"}</button> : null}</div></td>
     <td><TrendSummary counts={trends} /></td>
   </tr>;
+}
+
+function assessableCount(patient: DashboardPatient) {
+  return patient.referenceCounts.below + patient.referenceCounts.within + patient.referenceCounts.above;
+}
+
+function formatReportDate(value: string) {
+  const [year, month, day] = value.slice(0, 10).split("-");
+  return year && month && day ? `${day}.${month}.${year}` : value;
 }
 
 function changeAmount(value: DashboardValueDetail) {
