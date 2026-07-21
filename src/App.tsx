@@ -98,7 +98,7 @@ function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; seq
       onOpenPatients={() => setActiveSection("patients")}
       onSelectReferenceSource={demoData.selectReferenceSource}
     />
-    {activeSection === "dashboard" ? <DashboardOverview revealValueDetailForPatient={walkthrough.step.revealValueDetail && (walkthrough.state.playback === "playing" || walkthrough.state.playback === "paused") ? walkthrough.step.patientName ?? null : null} onOpenPatient={patientId => {
+    {activeSection === "dashboard" ? <DashboardOverview selectedPatientId={demoData.selectedPatientId} revealValueDetailForPatient={walkthrough.step.revealValueDetail && (walkthrough.state.playback === "playing" || walkthrough.state.playback === "paused") ? walkthrough.step.patientName ?? null : null} onOpenPatient={patientId => {
       demoData.selectPatient(patientId);
       setActiveSection("reports");
     }} /> : activeSection === "reports" ? <DemoDataWorkspace

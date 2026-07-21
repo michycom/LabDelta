@@ -290,7 +290,6 @@ fn build_patient(
         )
     });
     details.sort_by(highlight_order);
-    details.truncate(3);
     Ok(DashboardPatient {
         id,
         display_name,

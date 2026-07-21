@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as patientApi from "./api/patients";
 import App from "./App";
 import { DEMO_ACKNOWLEDGEMENT_KEY } from "./state/demoAcknowledgement";
-import type { ConfirmedReportValue, DashboardView, LaboratoryReport, PatientDetails, PatientListItem, ReferenceCatalogParameter, ReferenceSource } from "./types";
+import type { ConfirmedReportValue, DashboardValueDetail, DashboardView, LaboratoryReport, PatientDetails, PatientListItem, ReferenceCatalogParameter, ReferenceSource } from "./types";
 
 vi.mock("./api/patients", () => ({
   getDashboard: vi.fn(),
@@ -15,13 +15,49 @@ vi.mock("./api/patients", () => ({
   listReferenceCatalogParameters: vi.fn()
 }));
 
+function dashboardValue(parameterName: string, overrides: Partial<DashboardValueDetail> = {}): DashboardValueDetail {
+  return {
+    workingValueId: `value-${parameterName.toLowerCase().replaceAll(" ", "-")}`,
+    parameterName,
+    currentValue: "6.0",
+    unit: "synthetic-unit",
+    previousValue: "5.0",
+    absoluteDifference: "1.0",
+    relativeDifferencePercent: "20.0",
+    direction: "higher",
+    suppliedReference: "1.0-10.0",
+    referenceStatus: "within",
+    currentReportId: "current-report",
+    currentReportDate: "2026-03-01T08:00:00Z",
+    previousReportId: "previous-report",
+    previousReportDate: "2025-03-01T08:00:00Z",
+    profileTags: [],
+    originalParameterName: parameterName,
+    originalDocumentName: "synthetic-report.json",
+    provenanceLabel: "JSON path: $.values[0]",
+    provenanceExcerpt: `${parameterName}: synthetic fixture`,
+    referenceRuleId: "report-reference-interval-v1",
+    referenceRuleVersion: 1,
+    comparisonRuleId: "direct-numeric-same-unit-v1",
+    comparisonRuleVersion: 1,
+    ...overrides
+  };
+}
+
 const dashboard: DashboardView = {
   filter: "all",
   sortExplanation: "Outside supplied report reference first; then deterministic fields.",
   patients: [
-    { id: "dirk", displayName: "Dirk Mayer", latestReportId: "dirk-report", latestReportDate: "2026-03-01T08:00:00Z", reportCount: 3, confirmedValueCount: 14, referenceCounts: { below: 0, within: 10, above: 4, notAssessable: 0 }, profiles: [{ id: "lipid-profile", version: 1, name: "Lipid Profile", assignedParameterCount: 3, presentParameterCount: 3, outsideReferenceCount: 2 }], highlights: [], hasChanged: true, hasLongitudinalData: true },
-    { id: "daniel", displayName: "Daniel Power", latestReportId: "daniel-report", latestReportDate: "2026-02-01T08:00:00Z", reportCount: 2, confirmedValueCount: 13, referenceCounts: { below: 0, within: 12, above: 1, notAssessable: 0 }, profiles: [{ id: "liver-profile", version: 1, name: "Liver Profile", assignedParameterCount: 3, presentParameterCount: 3, outsideReferenceCount: 1 }], highlights: [], hasChanged: true, hasLongitudinalData: true },
-    { id: "8bd067aa-f087-8f27-88a7-0a9cf16fb054", displayName: "Eva Mittel", latestReportId: "18f3c5f0-6ce8-8d2d-99c6-ad7f43af18ec", latestReportDate: "2025-01-10T08:15:00Z", reportCount: 2, confirmedValueCount: 8, referenceCounts: { below: 0, within: 8, above: 0, notAssessable: 0 }, profiles: [{ id: "small-blood-count", version: 1, name: "Small Blood Count", assignedParameterCount: 8, presentParameterCount: 8, outsideReferenceCount: 0 }], highlights: [], hasChanged: true, hasLongitudinalData: true }
+    { id: "dirk", displayName: "Dirk Mayer", latestReportId: "dirk-report", latestReportDate: "2026-03-01T08:00:00Z", reportCount: 3, confirmedValueCount: 14, referenceCounts: { below: 0, within: 10, above: 4, notAssessable: 0 }, profiles: [{ id: "lipid-profile", version: 1, name: "Lipid Profile", assignedParameterCount: 3, presentParameterCount: 3, outsideReferenceCount: 2 }], highlights: [
+      dashboardValue("Fasting glucose", { referenceStatus: "above", profileTags: ["Glucose Metabolism"] }),
+      dashboardValue("HbA1c", { referenceStatus: "above", relativeDifferencePercent: "8.0", profileTags: ["Glucose Metabolism"] }),
+      dashboardValue("LDL", { referenceStatus: "above", relativeDifferencePercent: "12.0", profileTags: ["Lipid Profile"] }),
+      dashboardValue("Triglycerides", { referenceStatus: "above", relativeDifferencePercent: "15.0", profileTags: ["Lipid Profile"] }),
+      dashboardValue("Creatinine", { direction: "lower", relativeDifferencePercent: "-4.0", profileTags: ["Kidney Profile"] }),
+      dashboardValue("Platelets", { direction: "lower", relativeDifferencePercent: "-2.0", profileTags: ["Small Blood Count"] })
+    ], hasChanged: true, hasLongitudinalData: true },
+    { id: "daniel", displayName: "Daniel Power", latestReportId: "daniel-report", latestReportDate: "2026-02-01T08:00:00Z", reportCount: 2, confirmedValueCount: 13, referenceCounts: { below: 0, within: 12, above: 1, notAssessable: 0 }, profiles: [{ id: "liver-profile", version: 1, name: "Liver Profile", assignedParameterCount: 3, presentParameterCount: 3, outsideReferenceCount: 1 }], highlights: [dashboardValue("ALT", { referenceStatus: "above", profileTags: ["Liver Profile"] })], hasChanged: true, hasLongitudinalData: true },
+    { id: "8bd067aa-f087-8f27-88a7-0a9cf16fb054", displayName: "Eva Mittel", latestReportId: "18f3c5f0-6ce8-8d2d-99c6-ad7f43af18ec", latestReportDate: "2025-01-10T08:15:00Z", reportCount: 2, confirmedValueCount: 8, referenceCounts: { below: 0, within: 8, above: 0, notAssessable: 0 }, profiles: [{ id: "small-blood-count", version: 1, name: "Small Blood Count", assignedParameterCount: 8, presentParameterCount: 8, outsideReferenceCount: 0 }], highlights: [dashboardValue("Leukocytes", { relativeDifferencePercent: "1.6", profileTags: ["Small Blood Count"] })], hasChanged: true, hasLongitudinalData: true }
   ]
 };
 
@@ -212,9 +248,9 @@ describe("persisted synthetic demo flow", () => {
 
   it("loads exactly the three approved dashboard patients in Rust order", async () => {
     render(<App />);
-    expect(await screen.findByRole("heading", { name: "Approved synthetic patients" })).toBeInTheDocument();
-    const names = screen.getAllByRole("button").filter(button => ["Dirk Mayer", "Daniel Power", "Eva Mittel"].some(name => button.textContent?.includes(name)));
-    expect(names.map(button => button.textContent)).toEqual(expect.arrayContaining([expect.stringContaining("Dirk Mayer"), expect.stringContaining("Daniel Power"), expect.stringContaining("Eva Mittel")]));
+    expect(await screen.findByRole("heading", { name: "Laborwerte im Verlauf" })).toBeInTheDocument();
+    const patientRows = screen.getAllByRole("link");
+    expect(patientRows.map(row => row.textContent)).toEqual([expect.stringContaining("Dirk Mayer"), expect.stringContaining("Daniel Power"), expect.stringContaining("Eva Mittel")]);
     expect(patientApi.getDashboard).toHaveBeenCalledWith("all");
     for (const target of ["dashboard-overview", "dashboard-filters", "dashboard-patient-table"]) {
       expect(document.querySelector(`[data-demo-target="${target}"]`)).toBeInTheDocument();
@@ -225,13 +261,26 @@ describe("persisted synthetic demo flow", () => {
 
   it("requests deterministic dashboard filters from the Rust core", async () => {
     render(<App />);
-    await screen.findByRole("heading", { name: "Approved synthetic patients" });
-    fireEvent.click(screen.getByRole("button", { name: "Outside reference" }));
+    await screen.findByRole("heading", { name: "Laborwerte im Verlauf" });
+    fireEvent.click(screen.getByRole("button", { name: /Auffällig/ }));
     await waitFor(() => expect(patientApi.getDashboard).toHaveBeenCalledWith("outsideReference"));
-    fireEvent.click(screen.getByRole("button", { name: "Changed" }));
+    fireEvent.click(screen.getByRole("button", { name: /Deutlich verändert/ }));
     await waitFor(() => expect(patientApi.getDashboard).toHaveBeenCalledWith("changed"));
-    fireEvent.click(screen.getByRole("button", { name: "Longitudinal data" }));
+    fireEvent.click(screen.getByRole("button", { name: /Mit Langzeittrend/ }));
     await waitFor(() => expect(patientApi.getDashboard).toHaveBeenCalledWith("longitudinalData"));
+  });
+
+  it("shows every relevant change on demand and opens the existing patient detail", async () => {
+    render(<App />);
+    const dirkRow = await screen.findByRole("link", { name: /Dirk Mayer/ });
+    expect(screen.queryByText("Creatinine")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Alle 6 anzeigen" }));
+    expect(screen.getByText("Creatinine")).toBeInTheDocument();
+    expect(screen.getByText("Platelets")).toBeInTheDocument();
+    expect(screen.getByText("Lipid Profile")).toBeInTheDocument();
+    fireEvent.click(dirkRow);
+    await waitFor(() => expect(patientApi.getPatientDetails).toHaveBeenCalledWith("dirk"));
+    expect(screen.getByRole("button", { name: "Reports" })).toHaveClass("active");
   });
 
   it("opens only the disabled-import information view", async () => {
@@ -245,7 +294,7 @@ describe("persisted synthetic demo flow", () => {
 
   it("controls the real walkthrough with subtitles and language selection", async () => {
     render(<App />);
-    await screen.findByRole("heading", { name: "Approved synthetic patients" });
+    await screen.findByRole("heading", { name: "Laborwerte im Verlauf" });
 
     fireEvent.click(screen.getByRole("button", { name: "Play demo" }));
     expect(screen.getByRole("heading", { name: "Transparent longitudinal laboratory data" })).toBeInTheDocument();
