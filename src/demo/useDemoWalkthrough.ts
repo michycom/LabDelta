@@ -1,44 +1,53 @@
-import { useEffect, useReducer, useRef } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
 import { demoReducer, INITIAL_DEMO_STATE } from "./demoMachine";
 import { SpeechRunController, type SpeechFinishReason } from "./speechRun";
-import { DEMO_STEPS } from "./walkthrough";
+import { stepsForMode, type DemoMode } from "./walkthrough";
 
-const CHAPTER_PAUSE_MS = 700;
 const CHAPTER_LEAD_IN_MS = 400;
 
 export function useDemoWalkthrough() {
   const [state, dispatch] = useReducer(demoReducer, INITIAL_DEMO_STATE);
-  const step = DEMO_STEPS[state.stepIndex] ?? DEMO_STEPS[0]!;
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const steps = stepsForMode(state.mode);
+  const step = steps[state.stepIndex] ?? steps[0]!;
   const stateRef = useRef(state);
   const controllerRef = useRef<SpeechRunController | null>(null);
   const runKeyRef = useRef<string | null>(null);
-  const advanceTimerRef = useRef<number | null>(null);
-  const leadInTimerRef = useRef<number | null>(null);
-  const spokenChapterRef = useRef<number | null>(null);
+  const preparationTimerRef = useRef<number | null>(null);
   stateRef.current = state;
 
-  const clearAdvanceTimer = () => {
-    if (advanceTimerRef.current !== null) window.clearTimeout(advanceTimerRef.current);
-    advanceTimerRef.current = null;
-  };
-
-  const clearLeadInTimer = () => {
-    if (leadInTimerRef.current !== null) window.clearTimeout(leadInTimerRef.current);
-    leadInTimerRef.current = null;
+  const clearPreparationTimer = () => {
+    if (preparationTimerRef.current !== null) window.clearTimeout(preparationTimerRef.current);
+    preparationTimerRef.current = null;
   };
 
   const cancelSpeech = (reason: Extract<SpeechFinishReason, "cancelled" | "manual-navigation" | "language-restart">) => {
-    clearAdvanceTimer();
-    clearLeadInTimer();
+    clearPreparationTimer();
     runKeyRef.current = null;
     controllerRef.current?.cancel(reason);
   };
 
   useEffect(() => {
+    if (state.playback !== "preparing") return;
+    preparationTimerRef.current = window.setTimeout(() => {
+      preparationTimerRef.current = null;
+      dispatch({ type: "prepared" });
+    }, CHAPTER_LEAD_IN_MS);
+    return clearPreparationTimer;
+  }, [state.playback, state.runSequence]);
+
+  useEffect(() => {
+    if (state.playback !== "playing") return;
+    const timer = window.setInterval(() => setElapsedMs(value => value + 250), 250);
+    return () => window.clearInterval(timer);
+  }, [state.playback]);
+
+  useEffect(() => setElapsedMs(0), [state.stepIndex]);
+
+  useEffect(() => {
     if (typeof window.speechSynthesis === "undefined" || typeof window.SpeechSynthesisUtterance === "undefined") {
-      if (state.playback !== "playing") return;
-      const timer = window.setTimeout(() => dispatch({ type: "advance" }), step.durationMs);
-      return () => window.clearTimeout(timer);
+      return;
     }
     const controller = controllerRef.current ?? new SpeechRunController(window.speechSynthesis);
     controllerRef.current = controller;
@@ -47,46 +56,37 @@ export function useDemoWalkthrough() {
       return;
     }
     if (state.playback !== "playing") {
-      cancelSpeech("cancelled");
+      if (state.playback === "idle" || state.playback === "stopped") cancelSpeech("cancelled");
       return;
     }
-    const runKey = `${state.stepIndex}-${state.language}`;
+    const runKey = `${state.stepIndex}-${state.language}-${state.runSequence}`;
     if (runKeyRef.current === runKey && controller.activeRunId) {
       controller.resume();
       return;
     }
     if (controller.activeRunId) controller.cancel(controller.activeStepId === step.id ? "language-restart" : "manual-navigation");
-    clearAdvanceTimer();
     runKeyRef.current = runKey;
-    const startSpeech = () => {
-      leadInTimerRef.current = null;
-      spokenChapterRef.current = step.chapter;
-      controller.start({
-        stepId: step.id,
-        text: step.subtitle[state.language],
-        language: state.language,
-        onComplete: () => {
-          if (runKeyRef.current !== runKey) return;
-          runKeyRef.current = null;
-          advanceTimerRef.current = window.setTimeout(() => {
-            advanceTimerRef.current = null;
-            const current = stateRef.current;
-            if (current.playback === "playing" && current.stepIndex === state.stepIndex && current.language === state.language) dispatch({ type: "advance" });
-          }, CHAPTER_PAUSE_MS);
-        }
-      });
-    };
-    if (spokenChapterRef.current !== step.chapter) leadInTimerRef.current = window.setTimeout(startSpeech, CHAPTER_LEAD_IN_MS);
-    else startSpeech();
-    return clearLeadInTimer;
-  }, [state.language, state.playback, state.stepIndex, step.chapter, step.durationMs, step.id, step.subtitle]);
+    controller.start({
+      stepId: step.id,
+      chapterIndex: state.stepIndex,
+      text: step.subtitle[state.language],
+      language: state.language,
+      onComplete: () => {
+        if (runKeyRef.current !== runKey) return;
+        runKeyRef.current = null;
+        const current = stateRef.current;
+        if (current.playback === "playing" && current.stepIndex === state.stepIndex && current.runSequence === state.runSequence) dispatch({ type: "complete" });
+      }
+    });
+  }, [state.language, state.playback, state.runSequence, state.stepIndex, step.id, step.subtitle]);
 
   useEffect(() => () => cancelSpeech("cancelled"), []);
 
   useEffect(() => {
-    if (state.playback !== "playing" && state.playback !== "paused") return;
+    if (!["idle", "preparing", "playing", "paused", "completed"].includes(state.playback)) return;
     let target: HTMLElement | null = null;
     const applyHighlight = () => {
+      if (typeof document === "undefined") return;
       if (target) return;
       target = document.querySelector<HTMLElement>(`[data-demo-target="${step.target}"]`);
       target?.classList.add("demo-walk-highlight");
@@ -102,18 +102,64 @@ export function useDemoWalkthrough() {
     };
   }, [state.playback, state.stepIndex, step.target]);
 
+  const startFresh = (action: "play" | "replay") => {
+    cancelSpeech("manual-navigation");
+    setElapsedMs(0);
+    dispatch({ type: action });
+  };
+
+  const play = () => {
+    if (stateRef.current.playback === "paused") dispatch({ type: "play" });
+    else startFresh("play");
+  };
+  const pause = () => { controllerRef.current?.pause(); dispatch({ type: "pause" }); };
+  const stop = () => { cancelSpeech("cancelled"); setElapsedMs(0); dispatch({ type: "stop" }); };
+  const restart = () => startFresh("replay");
+  const previous = () => { cancelSpeech("manual-navigation"); setElapsedMs(0); dispatch({ type: "previous" }); };
+  const next = () => { cancelSpeech("manual-navigation"); setElapsedMs(0); dispatch({ type: "next" }); };
+  const selectChapter = (stepIndex: number) => { cancelSpeech("manual-navigation"); setElapsedMs(0); dispatch({ type: "select", stepIndex }); };
+  const startMode = (mode: DemoMode) => { cancelSpeech("manual-navigation"); setElapsedMs(0); dispatch({ type: "startMode", mode }); };
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"].includes(target.tagName))) return;
+      if (event.repeat) return;
+      const key = event.key.toLowerCase();
+      const handled = ["enter", " ", "n", "arrowright", "p", "arrowleft", "r", "s", "escape"].includes(key);
+      if (!handled) return;
+      event.preventDefault();
+      if (key === "enter") play();
+      else if (key === " ") { if (stateRef.current.playback === "playing") pause(); else play(); }
+      else if (key === "n" || key === "arrowright") next();
+      else if (key === "p" || key === "arrowleft") previous();
+      else if (key === "r") restart();
+      else stop();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   return {
     state,
     step,
-    stepCount: DEMO_STEPS.length,
-    play: () => dispatch({ type: "play" }),
-    pause: () => { controllerRef.current?.pause(); dispatch({ type: "pause" }); },
-    stop: () => { cancelSpeech("cancelled"); dispatch({ type: "stop" }); },
-    restart: () => { cancelSpeech("manual-navigation"); dispatch({ type: "restart" }); },
-    previous: () => { cancelSpeech("manual-navigation"); dispatch({ type: "previous" }); },
-    next: () => { cancelSpeech("manual-navigation"); dispatch({ type: "next" }); },
-    setLanguage: (language: "en" | "de") => {
-      if (language !== stateRef.current.language) cancelSpeech("language-restart");
+    stepCount: steps.length,
+    elapsedMs,
+    play,
+    pause,
+    stop,
+    restart,
+    previous,
+    next,
+    selectChapter,
+    startMode,
+    setAutoplay: (enabled: boolean) => dispatch({ type: "setAutoplay", enabled }),
+    setLanguage: (language: "en" | "de" | "zh-CN") => {
+      if (language !== stateRef.current.language && ["preparing", "playing", "paused"].includes(stateRef.current.playback)) {
+        cancelSpeech("language-restart");
+        setElapsedMs(0);
+        dispatch({ type: "replay" });
+      }
       dispatch({ type: "setLanguage", language });
     }
   };

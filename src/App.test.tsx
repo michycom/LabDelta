@@ -1,7 +1,8 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as patientApi from "./api/patients";
-import App from "./App";
+import App, { LabDeltaApplication } from "./App";
+import { I18nProvider, UI_LANGUAGE_STORAGE_KEY } from "./i18n";
 import { DEMO_ACKNOWLEDGEMENT_KEY } from "./state/demoAcknowledgement";
 import type { ConfirmedReportValue, DashboardValueDetail, DashboardView, LaboratoryReport, PatientDetails, PatientListItem, ReferenceCatalogParameter, ReferenceSource } from "./types";
 
@@ -144,6 +145,7 @@ const demoCatalogParameters: ReferenceCatalogParameter[] = Array.from({ length: 
 afterEach(cleanup);
 
 beforeEach(() => {
+  window.localStorage.clear();
   window.localStorage.setItem(DEMO_ACKNOWLEDGEMENT_KEY, "true");
   vi.clearAllMocks();
   vi.mocked(patientApi.getDashboard).mockResolvedValue(dashboard);
@@ -167,10 +169,10 @@ describe("persisted synthetic demo flow", () => {
     expect(screen.getAllByText("6.2").length).toBeGreaterThan(0);
     expect(screen.getAllByText("G/L").length).toBeGreaterThan(0);
     expect(screen.getAllByText("4.0-10.0").length).toBeGreaterThan(0);
-    expect(screen.getByText("JSON path: $.reports[0].values[0]")).toHaveClass("technical-path");
-    expect(screen.getByText("Eva Mittel – Laboratory Report")).toBeInTheDocument();
+    expect(screen.getByText("$.reports[0].values[0]")).toBeInTheDocument();
+    expect(screen.getByText("Eva Mittel – Reports")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open in Original Document" })).toBeInTheDocument();
-    expect(screen.getByText(/height: 160 cm \(explicit\)/)).toBeInTheDocument();
+    expect(screen.getByText(/height: 160 cm/)).toBeInTheDocument();
     expect(screen.getByText(/Small Blood Count/)).toBeInTheDocument();
     expect(screen.getByText(/General Health/)).toBeInTheDocument();
     expect(patientApi.getPatientDetails).toHaveBeenCalledWith(patient.id);
@@ -187,9 +189,9 @@ describe("persisted synthetic demo flow", () => {
 
     const selector = await screen.findByLabelText("Reference source");
     expect(selector).toHaveValue("report-reference");
-    expect(screen.getByRole("option", { name: "IFCC (future - disabled)" })).toBeDisabled();
-    expect(screen.getByRole("option", { name: "DGKL (future - disabled)" })).toBeDisabled();
-    expect(screen.getByRole("option", { name: "Local Laboratory (future - disabled)" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "IFCC (future – disabled)" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "DGKL (future – disabled)" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "Local Laboratory (future – disabled)" })).toBeDisabled();
     fireEvent.change(selector, { target: { value: "demo-reference-catalog" } });
     expect(await screen.findByText(/9 synthetic parameters available; not applied automatically/)).toBeInTheDocument();
     expect(patientApi.listReferenceCatalogParameters).toHaveBeenCalledWith("demo-reference-catalog", 1);
@@ -249,7 +251,7 @@ describe("persisted synthetic demo flow", () => {
 
   it("loads exactly the three approved dashboard patients in Rust order", async () => {
     render(<App />);
-    expect(await screen.findByRole("heading", { name: "Dashboard – Auffällige Veränderungen" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Dashboard – Notable changes" })).toBeInTheDocument();
     const patientRows = screen.getAllByRole("link");
     expect(patientRows.map(row => row.textContent)).toEqual([expect.stringContaining("Dirk Mayer"), expect.stringContaining("Daniel Power"), expect.stringContaining("Eva Mittel")]);
     expect(patientApi.getDashboard).toHaveBeenCalledWith("all");
@@ -262,12 +264,12 @@ describe("persisted synthetic demo flow", () => {
 
   it("requests deterministic dashboard filters from the Rust core", async () => {
     render(<App />);
-    await screen.findByRole("heading", { name: "Dashboard – Auffällige Veränderungen" });
-    fireEvent.click(screen.getByRole("button", { name: /^Auffällig/ }));
+    await screen.findByRole("heading", { name: "Dashboard – Notable changes" });
+    fireEvent.click(screen.getByRole("button", { name: /^Outside reference/ }));
     await waitFor(() => expect(patientApi.getDashboard).toHaveBeenCalledWith("outsideReference"));
-    fireEvent.click(screen.getByRole("button", { name: /Deutlich verändert/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Clearly changed/ }));
     await waitFor(() => expect(patientApi.getDashboard).toHaveBeenCalledWith("changed"));
-    fireEvent.click(screen.getByRole("button", { name: /Mit Langzeittrend/ }));
+    fireEvent.click(screen.getByRole("button", { name: /With longitudinal trend/ }));
     await waitFor(() => expect(patientApi.getDashboard).toHaveBeenCalledWith("longitudinalData"));
   });
 
@@ -286,7 +288,7 @@ describe("persisted synthetic demo flow", () => {
 
   it("localizes the change expansion labels with the existing demo language", async () => {
     render(<App />);
-    await screen.findByRole("heading", { name: "Dashboard – Auffällige Veränderungen" });
+    await screen.findByRole("heading", { name: "Dashboard – Notable changes" });
     expect(screen.getAllByRole("button", { name: "Show all changes" }).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "DE" }));
     expect(screen.getAllByRole("button", { name: "Alle Veränderungen anzeigen" }).length).toBeGreaterThan(0);
@@ -294,7 +296,7 @@ describe("persisted synthetic demo flow", () => {
 
   it("keeps patient overview and analysis as separate sidebar destinations", async () => {
     render(<App />);
-    await screen.findByRole("heading", { name: "Dashboard – Auffällige Veränderungen" });
+    await screen.findByRole("heading", { name: "Dashboard – Notable changes" });
     expect(document.querySelector('[data-demo-target="dashboard-patient-table"]')).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Analysis Overview" }));
     expect(document.querySelector('[data-demo-target="analysis-dashboard"]')).toBeInTheDocument();
@@ -320,25 +322,84 @@ describe("persisted synthetic demo flow", () => {
 
   it("controls the real walkthrough with subtitles and language selection", async () => {
     render(<App />);
-    await screen.findByRole("heading", { name: "Dashboard – Auffällige Veränderungen" });
+    await screen.findByRole("heading", { name: "Dashboard – Notable changes" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Play demo" }));
+    fireEvent.click(screen.getByRole("button", { name: "Play chapter" }));
     expect(screen.getByRole("heading", { name: "Transparent longitudinal laboratory data" })).toBeInTheDocument();
-    expect(screen.getAllByText(/Laboratory data is often distributed/).length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Previous demo step" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Next demo step" }));
-    expect(screen.getByText(/dashboard is the compact starting point/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Previous demo step" }));
-    expect(screen.getByRole("heading", { name: "Transparent longitudinal laboratory data" })).toBeInTheDocument();
+    expect(screen.getAllByText(/How can laboratory findings from separate dates/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Previous chapter" })).toBeDisabled();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pause chapter" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Next chapter" }));
+    const controls = screen.getByRole("complementary", { name: "Demo walkthrough controls" });
+    expect(within(controls).getByText("2 / 11")).toBeInTheDocument();
+    expect(within(controls).getByText("Dashboard")).toBeInTheDocument();
+    expect(within(controls).getByText("00:00")).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Previous chapter" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Pause demo" }));
-    expect(screen.getByText("Paused")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Play chapter" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pause chapter" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Pause chapter" }));
+    expect(screen.getAllByText("Paused").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "DE" }));
-    expect(screen.getAllByText(/Laborwerte liegen häufig/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Wie lassen sich Laborbefunde verschiedener Zeitpunkte/).length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByRole("button", { name: "Stop demo" }));
-    expect(screen.queryByText(/Laborwerte liegen häufig/)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Restart demo" }));
-    expect(screen.getAllByText(/Laborwerte liegen häufig/).length).toBeGreaterThan(0);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Kapitel pausieren" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Kapitel stoppen" }));
+    expect(document.querySelector(".demo-subtitle")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Kapitel wiederholen" }));
+    expect(screen.getAllByText(/Wie lassen sich Laborbefunde verschiedener Zeitpunkte/).length).toBeGreaterThan(0);
+  });
+
+  it("renders distinct visual states across chapters nine, ten, and eleven", async () => {
+    render(<App />);
+    await screen.findByRole("heading", { name: "Dashboard – Notable changes" });
+    const next = () => fireEvent.click(screen.getByRole("button", { name: "Next chapter" }));
+    for (let index = 0; index < 8; index += 1) next();
+    expect(await screen.findByText("Manual file selection disabled")).toBeInTheDocument();
+    expect(document.querySelector('[data-demo-target="import-information"]')).toBeInTheDocument();
+
+    next();
+    expect(await screen.findByRole("heading", { name: "Dashboard – Notable changes" })).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector('[data-demo-target="dashboard-overview"]')).toHaveClass("demo-walk-highlight"));
+
+    next();
+    expect(await screen.findByRole("heading", { name: "Current development status and clinical clarification needs" })).toBeInTheDocument();
+    expect(screen.getByText("Report comparison, chronological history, laboratory profiles, original source documents, and provenance.")).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector('[data-demo-target="development-status"]')).toHaveClass("demo-walk-highlight"));
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous chapter" }));
+    expect(await screen.findByRole("heading", { name: "Dashboard – Notable changes" })).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector('[data-demo-target="dashboard-overview"]')).toHaveClass("demo-walk-highlight"));
+  });
+
+  it("hides and restores demo chrome without changing active playback", async () => {
+    const view = render(<I18nProvider><LabDeltaApplication nativeAction={null} /></I18nProvider>);
+    await screen.findByRole("heading", { name: "Dashboard – Notable changes" });
+    fireEvent.click(screen.getByRole("button", { name: "Play chapter" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pause chapter" })).toBeEnabled());
+    view.rerender(<I18nProvider><LabDeltaApplication nativeAction={{ id: "toggle-demo-visibility", sequence: 1 }} /></I18nProvider>);
+    await waitFor(() => expect(screen.queryByRole("complementary", { name: "Demo walkthrough controls" })).not.toBeInTheDocument());
+    expect(document.querySelector(".demo-subtitle")).not.toBeInTheDocument();
+    view.rerender(<I18nProvider><LabDeltaApplication nativeAction={{ id: "toggle-demo-visibility", sequence: 2 }} /></I18nProvider>);
+    expect(await screen.findByRole("button", { name: "Pause chapter" })).toBeEnabled();
+  });
+
+  it("starts the compact contest sequence and the full walkthrough from the native menu", async () => {
+    const view = render(<I18nProvider><LabDeltaApplication nativeAction={{ id: "demo-contest", sequence: 1 }} /></I18nProvider>);
+    const controls = await screen.findByRole("complementary", { name: "Demo walkthrough controls" });
+    expect(within(controls).getByText("1 / 6")).toBeInTheDocument();
+    expect(within(controls).getByText("Welcome")).toBeInTheDocument();
+    view.rerender(<I18nProvider><LabDeltaApplication nativeAction={{ id: "demo-full", sequence: 2 }} /></I18nProvider>);
+    await waitFor(() => expect(within(controls).getByText("1 / 11")).toBeInTheDocument());
+  });
+
+  it("persists simplified Chinese and applies it without restart", async () => {
+    render(<App />);
+    await screen.findByRole("heading", { name: "Dashboard – Notable changes" });
+    fireEvent.click(screen.getByRole("button", { name: "中文" }));
+    expect(window.localStorage.getItem(UI_LANGUAGE_STORAGE_KEY)).toBe("zh-CN");
+    expect(await screen.findByRole("heading", { name: "仪表板——显著变化" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "主导航" })).toBeInTheDocument();
   });
 });

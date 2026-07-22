@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { sectionForMenuAction, subscribeNativeMenu } from "./api/nativeMenu";
+import { sectionForMenuAction, subscribeNativeMenu, updateNativeMenu } from "./api/nativeMenu";
 import { DemoDataWorkspace } from "./components/DemoDataWorkspace";
 import { DashboardOverview } from "./components/DashboardOverview";
 import { DemoDisclaimer } from "./components/DemoDisclaimer";
@@ -13,8 +13,13 @@ import { useDemoData } from "./hooks/useDemoData";
 import { useDemoWalkthrough } from "./demo/useDemoWalkthrough";
 import { hasAcknowledgedDemoDisclaimer, storeDemoDisclaimerAcknowledgement } from "./state/demoAcknowledgement";
 import type { AppSection, PatientListItem } from "./types";
+import { I18nProvider, useI18n, type UiLanguage } from "./i18n";
 
 export default function App() {
+  return <I18nProvider><AppContent /></I18nProvider>;
+}
+
+function AppContent() {
   const [hasAcknowledgedDisclaimer, setHasAcknowledgedDisclaimer] = useState(hasAcknowledgedDemoDisclaimer);
   const [nativeAction, setNativeAction] = useState<{ id: string; sequence: number } | null>(null);
 
@@ -37,23 +42,31 @@ export default function App() {
   return <LabDeltaApplication nativeAction={nativeAction} />;
 }
 
-function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; sequence: number } | null }) {
+export function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; sequence: number } | null }) {
+  const { language, setLanguage, t } = useI18n();
   const [activeSection, setActiveSection] = useState<AppSection>("dashboard");
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [demoVisible, setDemoVisible] = useState(true);
   const demoData = useDemoData();
   const walkthrough = useDemoWalkthrough();
   const demoPatients = demoData.patients;
-  const selectedDemoPatientId = demoData.selectedPatientId;
   const selectDemoPatient = demoData.selectPatient;
 
+  useEffect(() => { if (walkthrough.state.language !== language) walkthrough.setLanguage(language); }, [language, walkthrough]);
+  useEffect(() => { void updateNativeMenu(language, demoVisible); }, [demoVisible, language]);
+
   useEffect(() => {
-    if (walkthrough.state.playback !== "playing" && walkthrough.state.playback !== "paused") return;
     setActiveSection(walkthrough.step.section);
-    if (walkthrough.step.patientName) {
+    if (walkthrough.step.clearPatientSelection) {
+      selectDemoPatient(null);
+    } else if (walkthrough.step.patientName) {
       const patient = demoPatients.find(candidate => candidate.displayName === walkthrough.step.patientName);
-      if (patient && patient.id !== selectedDemoPatientId) selectDemoPatient(patient.id);
+      if (patient) selectDemoPatient(patient.id);
     }
-  }, [demoPatients, selectDemoPatient, selectedDemoPatientId, walkthrough.state.playback, walkthrough.step]);
+  // A chapter selection applies its visual state once. Normal user navigation
+  // remains available afterwards and must not be overwritten by data refreshes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walkthrough.step.id]);
 
   useEffect(() => {
     const targetBySection: Partial<Record<AppSection, string>> = {
@@ -77,14 +90,19 @@ function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; seq
       setActiveSection("dashboard");
     }
     if (nativeAction.id === "toggle-sidebar") setSidebarVisible(visible => !visible);
+    if (nativeAction.id === "toggle-demo-visibility") setDemoVisible(visible => !visible);
+    if (nativeAction.id === "settings") setActiveSection("preferences");
     if (nativeAction.id === "demo-play") walkthrough.play();
+    if (nativeAction.id === "demo-contest") walkthrough.startMode("contest");
+    if (nativeAction.id === "demo-full") walkthrough.startMode("full");
     if (nativeAction.id === "demo-pause") walkthrough.pause();
     if (nativeAction.id === "demo-stop") walkthrough.stop();
     if (nativeAction.id === "demo-restart") walkthrough.restart();
     if (nativeAction.id === "demo-previous-step") walkthrough.previous();
     if (nativeAction.id === "demo-next-step") walkthrough.next();
-    if (nativeAction.id === "language-english") walkthrough.setLanguage("en");
-    if (nativeAction.id === "language-german") walkthrough.setLanguage("de");
+    if (nativeAction.id === "language-english") setLanguage("en");
+    if (nativeAction.id === "language-german") setLanguage("de");
+    if (nativeAction.id === "language-chinese") setLanguage("zh-CN");
     if (nativeAction.id === "next-patient" || nativeAction.id === "previous-patient") {
       const current = demoData.patients.findIndex(patient => patient.id === demoData.selectedPatientId);
       const offset = nativeAction.id === "next-patient" ? 1 : -1;
@@ -141,30 +159,50 @@ function LabDeltaApplication({ nativeAction }: { nativeAction: { id: string; seq
         setActiveSection("reports");
       }}
     /> : <InformationView patient={demoData.selectedPatient} section={activeSection as Exclude<AppSection, "dashboard" | "analysis" | "patients" | "reports" | "profiles" | "history" | "originalDocument" | "provenance">} />}
-    <footer><strong>Research and demonstration project.</strong> Not clinically validated and not released for medical use. No diagnosis, prognosis, treatment, test, or therapy recommendation. Synthetic source documents remain authoritative for this demonstration.</footer>
-    <DemoWalkthroughControls
+    <footer><strong>{t("footerStrong")}</strong> {t("footerText")}</footer>
+    {demoVisible ? <DemoWalkthroughControls
       language={walkthrough.state.language}
-      onLanguage={walkthrough.setLanguage}
+      autoplay={walkthrough.state.autoplay}
+      elapsedMs={walkthrough.elapsedMs}
+      onLanguage={setLanguage}
       onPause={walkthrough.pause}
       onPlay={walkthrough.play}
-      onRestart={walkthrough.restart}
+      onReplay={walkthrough.restart}
       onPrevious={walkthrough.previous}
       onNext={walkthrough.next}
       onStop={walkthrough.stop}
+      onAutoplay={walkthrough.setAutoplay}
       playback={walkthrough.state.playback}
       step={walkthrough.step}
       stepCount={walkthrough.stepCount}
       stepIndex={walkthrough.state.stepIndex}
-    />
-    {(walkthrough.state.playback === "playing" || walkthrough.state.playback === "paused") && walkthrough.step.id === "introduction" ? <DemoIntroScreen durationMs={walkthrough.step.durationMs} language={walkthrough.state.language} paused={walkthrough.state.playback === "paused"} /> : null}
+    /> : null}
+    {(["preparing", "playing", "paused"] as const).includes(walkthrough.state.playback as "preparing" | "playing" | "paused") && walkthrough.step.id === "introduction" ? <DemoIntroScreen durationMs={walkthrough.step.durationMs} language={walkthrough.state.language} paused={walkthrough.state.playback === "paused"} /> : null}
   </Shell>;
 }
 
 function InformationView({ section, patient }: { section: Exclude<AppSection, "dashboard" | "analysis" | "patients" | "reports" | "profiles" | "history" | "originalDocument" | "provenance">; patient: PatientListItem | null }) {
+  const { language, setLanguage, t } = useI18n();
   if (section === "import") return <ImportInformationView patient={patient} />;
-  if (section === "about") return <section className="information-view"><span className="section-kicker">LabDelta Contest Demo</span><h1>About LabDelta</h1><p>Local-first research and demonstration software using only approved synthetic fixtures.</p></section>;
-  if (section === "limitations") return <section className="information-view"><span className="section-kicker">Demo Data and Limitations</span><h1>Contest Demo limitations</h1><p>No clinical validation, medical interpretation, diagnosis, therapy, general import, cloud, telemetry, or runtime AI.</p></section>;
-  if (section === "documentation") return <section className="information-view"><span className="section-kicker">Local documentation</span><h1>Project Documentation</h1><p>The binding project, acceptance, reference catalog, and fixture documentation is stored locally in the docs directory.</p></section>;
-  if (section === "fixtures") return <section className="information-view"><span className="section-kicker">Approved local data</span><h1>About Synthetic Fixtures</h1><p>Eva Mittel, Dirk Mayer, and Daniel Power are fully synthetic, deterministic Contest Demo patients.</p></section>;
+  if (section === "preferences") return <section className="information-view preferences-view"><span className="section-kicker">LabDelta</span><h1>{t("preferences")}</h1><label>{t("interfaceLanguage")}<select aria-label={t("interfaceLanguage")} onChange={event => setLanguage(event.target.value as UiLanguage)} value={language}><option value="en">English</option><option value="de">Deutsch</option><option value="zh-CN">中文（简体）</option></select></label><p>{t("languageHelp")}</p></section>;
+  if (section === "about") return <section className="information-view"><h1>{t("about")}</h1><p>{t("aboutBody")}</p></section>;
+  if (section === "limitations") return <DevelopmentStatusView />;
+  if (section === "documentation") return <section className="information-view"><h1>{t("documentation")}</h1><p>{t("documentationBody")}</p></section>;
+  if (section === "fixtures") return <section className="information-view"><h1>{t("fixtures")}</h1><p>{t("fixturesBody")}</p></section>;
   return null;
+}
+
+function DevelopmentStatusView() {
+  const { t } = useI18n();
+  return <section className="information-view development-status-view" data-demo-target="development-status">
+    <span className="section-kicker">{t("developmentStatusKicker")}</span>
+    <h1>{t("developmentStatusTitle")}</h1>
+    <p className="development-status-intro">{t("developmentStatusIntro")}</p>
+    <div className="development-status-grid">
+      <article><h2>{t("demonstrableNow")}</h2><p>{t("demonstrableNowBody")}</p></article>
+      <article><h2>{t("notValidated")}</h2><p>{t("notValidatedBody")}</p></article>
+      <article><h2>{t("collaborationNeeded")}</h2><p>{t("collaborationNeededBody")}</p></article>
+      <article><h2>{t("syntheticDemoOnly")}</h2><p>{t("syntheticDemoOnlyBody")}</p></article>
+    </div>
+  </section>;
 }
