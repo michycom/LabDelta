@@ -222,4 +222,4 @@ export interface DashboardView {
   patients: DashboardPatient[];
 }
 
-export type AppSection = "dashboard" | "analysis" | "patients" | "reports" | "profiles" | "history" | "originalDocument" | "provenance" | "import" | "about" | "limitations" | "documentation" | "fixtures";
+export type AppSection = "dashboard" | "analysis" | "patients" | "reports" | "profiles" | "history" | "originalDocument" | "provenance" | "import" | "preferences" | "about" | "limitations" | "documentation" | "fixtures";

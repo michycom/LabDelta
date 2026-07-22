@@ -28,25 +28,25 @@ describe("demo disclaimer", () => {
   it("precedes the application and states the binding demo limitations", () => {
     render(<App />);
 
-    expect(screen.getByRole("dialog", { name: "Hinweis vor dem Start" })).toBeInTheDocument();
-    expect(screen.getByText("LabDelta ist ein Forschungs- und Demonstrationsprojekt. Es ist nicht klinisch validiert und nicht für medizinische Nutzung freigegeben.")).toBeInTheDocument();
-    expect(screen.getByText("Die Software darf nicht für medizinische Entscheidungen genutzt werden.")).toBeInTheDocument();
-    expect(screen.getByText("Dieser Hinweis und seine Kenntnisnahme sind keine regulatorische Prüfung, Zertifizierung oder Freigabe.")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Notice before starting" })).toBeInTheDocument();
+    expect(screen.getByText("LabDelta is a research and demonstration project. It is not clinically validated or released for medical use.")).toBeInTheDocument();
+    expect(screen.getByText("The software must not be used for medical decisions.")).toBeInTheDocument();
+    expect(screen.getByText("This notice and acknowledgement are not a regulatory review, certification, or approval.")).toBeInTheDocument();
     expect(screen.queryByText("Synthetic demo patients")).not.toBeInTheDocument();
     expect(patientApi.listPatients).not.toHaveBeenCalled();
   });
 
   it("stores only the local UI acknowledgement and keeps the demo marker visible", async () => {
     const firstRender = render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: "Hinweis zur Kenntnis nehmen und Demo öffnen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Acknowledge notice and open demo" }));
 
     expect(window.localStorage.getItem(DEMO_ACKNOWLEDGEMENT_KEY)).toBe("true");
-    expect(screen.getByRole("status")).toHaveTextContent("Demo – ausschließlich synthetische Testdaten");
+    expect(screen.getByRole("status")).toHaveTextContent("Demo – synthetic test data only");
     expect(await screen.findByText("No approved demo patients match this filter.")).toBeInTheDocument();
 
     firstRender.unmount();
     render(<App />);
-    expect(screen.queryByRole("dialog", { name: "Hinweis vor dem Start" })).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Demo – ausschließlich synthetische Testdaten");
+    expect(screen.queryByRole("dialog", { name: "Notice before starting" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Demo – synthetic test data only");
   });
 });

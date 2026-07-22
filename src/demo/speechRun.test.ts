@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { estimateSpeechDurationMs, SpeechRunController } from "./speechRun";
+import { estimateSpeechDurationMs, SPEECH_POST_END_DELAY_MS, SPEECH_SEGMENT_GAP_MS, SPEECH_WATCHDOG_RECHECK_MS, SpeechRunController, splitSpeechText } from "./speechRun";
 
 class FakeUtterance {
   lang = "";
   rate = 1;
   onstart: ((event: SpeechSynthesisEvent) => void) | null = null;
+  onboundary: ((event: SpeechSynthesisEvent) => void) | null = null;
   onend: ((event: SpeechSynthesisEvent) => void) | null = null;
   onerror: ((event: SpeechSynthesisErrorEvent) => void) | null = null;
   constructor(readonly text: string) {}
@@ -34,12 +35,16 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
 describe("SpeechRunController", () => {
-  it("finishes through the watchdog when onend never arrives", () => {
-    const { controller } = setup();
+  it("uses the watchdog only after speech has stopped without onend", () => {
+    const { speech, controller } = setup();
     const complete = vi.fn();
     const text = "This spoken sentence deliberately has no end callback.";
     controller.start({ stepId: "watchdog-step", text, language: "en", onComplete: complete });
     vi.advanceTimersByTime(estimateSpeechDurationMs(text));
+    expect(complete).not.toHaveBeenCalled();
+    expect(controller.activeRunId).not.toBeNull();
+    speech.speaking = false;
+    vi.advanceTimersByTime(SPEECH_WATCHDOG_RECHECK_MS + SPEECH_POST_END_DELAY_MS);
     expect(complete).toHaveBeenCalledOnce();
     expect(complete).toHaveBeenCalledWith("watchdog");
     expect(controller.activeRunId).toBeNull();
@@ -52,6 +57,9 @@ describe("SpeechRunController", () => {
     controller.start({ stepId: "race", text, language: "en", onComplete: complete });
     const lateEnd = speech.utterances[0]!.onend!;
     lateEnd({} as SpeechSynthesisEvent);
+    expect(complete).not.toHaveBeenCalled();
+    speech.speaking = false;
+    vi.advanceTimersByTime(SPEECH_POST_END_DELAY_MS);
     vi.advanceTimersByTime(estimateSpeechDurationMs(text));
     lateEnd({} as SpeechSynthesisEvent);
     expect(complete).toHaveBeenCalledOnce();
@@ -62,8 +70,9 @@ describe("SpeechRunController", () => {
     const { speech, controller } = setup();
     const complete = vi.fn();
     controller.start({ stepId: "error", text: "The engine reports an error.", language: "en", onComplete: complete });
+    speech.speaking = false;
     speech.utterances[0]!.onerror!({ error: "synthesis-failed" } as SpeechSynthesisErrorEvent);
-    vi.runAllTimers();
+    vi.advanceTimersByTime(SPEECH_POST_END_DELAY_MS);
     expect(complete).toHaveBeenCalledOnce();
     expect(complete).toHaveBeenCalledWith("error");
   });
@@ -95,7 +104,7 @@ describe("SpeechRunController", () => {
     lateEnd({} as SpeechSynthesisEvent);
     vi.advanceTimersByTime(estimateSpeechDurationMs("Deutscher Text"));
     expect(oldComplete).not.toHaveBeenCalled();
-    expect(newComplete).toHaveBeenCalledOnce();
+    expect(newComplete).not.toHaveBeenCalled();
   });
 
   it("stops the watchdog while paused and resumes with the remainder", () => {
@@ -112,7 +121,8 @@ describe("SpeechRunController", () => {
     vi.advanceTimersByTime(duration - 2_001);
     expect(complete).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
-    expect(complete).toHaveBeenCalledWith("watchdog");
+    expect(complete).not.toHaveBeenCalled();
+    expect(controller.activeRunId).not.toBeNull();
   });
 
   it("clears utterance handlers and timer on stop", () => {
@@ -122,9 +132,40 @@ describe("SpeechRunController", () => {
     const utterance = speech.utterances[0]!;
     controller.cancel("cancelled");
     expect(utterance.onstart).toBeNull();
+    expect(utterance.onboundary).toBeNull();
     expect(utterance.onend).toBeNull();
     expect(utterance.onerror).toBeNull();
     expect(vi.getTimerCount()).toBe(0);
+    expect(complete).not.toHaveBeenCalled();
+  });
+
+  it("speaks every natural segment before completing the diagnosis sentence", () => {
+    const { speech, controller } = setup();
+    const complete = vi.fn();
+    const text = "It does not make a diagnosis. It does not prioritize or recommend clinical decisions.";
+    expect(splitSpeechText(text)).toHaveLength(2);
+    controller.start({ stepId: "diagnosis", chapterIndex: 9, text, language: "en", onComplete: complete });
+    speech.speaking = false;
+    speech.utterances[0]!.onend!({ charIndex: speech.utterances[0]!.text.length } as SpeechSynthesisEvent);
+    vi.advanceTimersByTime(SPEECH_SEGMENT_GAP_MS);
+    expect(speech.utterances[1]!.text).toBe("It does not prioritize or recommend clinical decisions.");
+    expect(complete).not.toHaveBeenCalled();
+    speech.speaking = false;
+    speech.utterances[1]!.onend!({ charIndex: speech.utterances[1]!.text.length } as SpeechSynthesisEvent);
+    vi.advanceTimersByTime(SPEECH_POST_END_DELAY_MS);
+    expect(complete).toHaveBeenCalledOnce();
+  });
+
+  it("recovers a reliable early end from the remaining word boundary", () => {
+    const { speech, controller } = setup();
+    const complete = vi.fn();
+    const text = "This view does not make a diagnosis or recommend a clinical decision.";
+    const charIndex = text.indexOf(" or recommend");
+    controller.start({ stepId: "early-end", text, language: "en", onComplete: complete });
+    speech.speaking = false;
+    speech.utterances[0]!.onend!({ charIndex } as SpeechSynthesisEvent);
+    vi.advanceTimersByTime(SPEECH_SEGMENT_GAP_MS);
+    expect(speech.utterances[1]!.text).toBe("or recommend a clinical decision.");
     expect(complete).not.toHaveBeenCalled();
   });
 });

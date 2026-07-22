@@ -39,7 +39,8 @@ pub fn run() {
             get_patient_details,
             list_laboratory_reports,
             list_confirmed_report_values,
-            get_dashboard
+            get_dashboard,
+            native_menu::update_native_menu
         ])
         .run(tauri::generate_context!())
         .expect("error while running LabDelta");
