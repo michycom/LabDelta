@@ -1,60 +1,54 @@
 # LabDelta
 
-**Medicine already has the data. LabDelta helps clinicians see it.**
+Transparent, local-first visualization of longitudinal laboratory data using approved synthetic patients.
 
-Privacy-first, local desktop software for medical professionals, intended to be released as open source. LabDelta compares longitudinal laboratory reports, highlights changes, groups affected values into overlapping functional laboratory profiles, and preserves source traceability.
+> OpenAI Build Week 2026 demonstration
 
-It does not diagnose disease, estimate disease probability, recommend treatment, or recommend additional tests.
+## Demo Video
 
-Status: Gate 3.0 contest foundation implemented. The desktop demo loads only
-checksum-approved synthetic fixtures into local SQLite and exposes confirmed
-values with their original source text and location. It performs only
-deterministic report-interval classification and exact longitudinal arithmetic;
-it deliberately performs no medical interpretation, charting, source import,
-or runtime AI.
+https://youtu.be/PCPOvtKxfpM
 
-## Contest demo
+## Overview
 
-```bash
-npm install
-npm run tauri dev
-```
+LabDelta explores how laboratory reports from different points in time can be transformed into transparent, traceable, and clinically reviewable longitudinal patient views.
 
-On first launch, acknowledge the synthetic-data notice. The SQLite-driven
-dashboard then shows exactly the deterministic synthetic patients Eva Mittel,
-Dirk Mayer, and Daniel Power. Patient cards expose report and reference-status
-counts, exact longitudinal differences, transparent static profile assignments,
-and compact provenance details. Dashboard filters and sorting are deterministic
-and non-diagnostic. The existing report view remains available from each card
-and from the sidebar.
+The current repository contains the contest demonstration presented during OpenAI Build Week 2026.
 
-Manual import is disabled; its view explains that the Contest Demo uses only
-approved synthetic fixtures. The native desktop menu provides local navigation,
-information actions, and controls for a ten-step self-running walkthrough. The
-same Play, Pause, Stop, Restart, English, and Deutsch controls remain visible in
-the application. The walkthrough drives real views, highlights their real data,
-shows animated subtitles, and optionally speaks them through the operating
-system's Web Speech synthesis. Previous Step and Next Step move exactly one
-step through the same state machine. The 15-second introduction is an animated
-part of the live application, not a screenshot, simulated UI, or video.
+## Current capabilities
 
-The main UI areas use locally remembered Collapse/Expand panels. The report
-view generates multi-page, report-like synthetic document pages directly from
-the selected seeded patient, report, confirmed original values, and provenance.
-These pages are HTML UI surfaces only; no PDF, OCR, parser, or document import
-is involved. Stable demo and parameter anchors prepare coordinated future
-highlights across dashboard, comparison, history, document, and provenance.
+- Dashboard overview across multiple patients
+- Patient detail comparison
+- Longitudinal laboratory trends
+- Laboratory profile grouping
+- Mathematical change visualization
+- Provenance tracking
+- Original laboratory report viewer
+- Local-first architecture
+- Demo walkthrough in multiple languages
 
-Report Reference remains the default; the optional Demo Reference Catalog v1
-is synthetic and is never applied automatically. `scripts/generate_demo_artifacts.py`
-recreates the canonical CSV and selectable-text PDF from the approved JSON
-fixtures; their hashes are recorded in
-`fixtures/demo_seed/v1/derived-artifacts.json`.
+## Current limitations
 
-See `docs/DEMO_WALKTHROUGH.md` for the self-running demonstration,
-`docs/UI_POLISH.md` and `docs/SYNTHETIC_DOCUMENT_VIEW.md` for the public-demo
-surface,
-`docs/DASHBOARD_AND_NATIVE_MENU.md` for the visible workflow, and
-`docs/GATE_3_0_ACCEPTANCE.md` for the implemented scope and validation commands.
+This repository demonstrates data representation and transparency.
 
-License model to be determined before the first public release.
+The current version:
+
+- uses only approved synthetic patients
+- is intended for demonstration and research
+- has not undergone clinical validation
+- does not provide diagnoses
+- does not recommend therapies
+- does not prioritize laboratory findings
+- does not replace clinical judgement
+
+## Technology
+
+- Rust
+- Tauri
+- React
+- TypeScript
+- SQLite
+
+## Repository status
+
+This repository represents the OpenAI Build Week 2026 contest demonstration.
+Future development will focus on transparent longitudinal laboratory visualization and collaboration with clinical partners for medical validation.
